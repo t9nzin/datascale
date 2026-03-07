@@ -1,0 +1,43 @@
+// dataTail Tailscale ACL Policy
+// Paste this into https://login.tailscale.com/admin/acls
+//
+// Groups:
+//   group:admins     — full tailnet access + can manage ACL via dataTail admin panel
+//   group:annotators — access to the annotation app only (port 3000)
+//
+// Tags:
+//   tag:datatail     — applied to the machine(s) running dataTail server
+//
+// To add annotators, add their Tailscale login email to group:annotators.
+// To tag your server: Machine settings > Edit tags > add "datatail"
+
+{
+  "groups": {
+    "group:admins":     ["francois.coleongco@gmail.com"],
+    "group:annotators": []
+  },
+
+  "tagOwners": {
+    // Only admins can assign the datatail tag to machines
+    "tag:datatail": ["group:admins"]
+  },
+
+  "acls": [
+    // Admins: unrestricted access to everything on the tailnet
+    {
+      "action": "accept",
+      "src":    ["group:admins"],
+      "dst":    ["*:*"]
+    },
+
+    // Annotators: access to the dataTail annotation server only
+    // Port 3000 = main API + annotation UI (served via Tailscale serve)
+    {
+      "action": "accept",
+      "src":    ["group:annotators"],
+      "dst":    ["tag:datatail:3000"]
+    }
+
+    // Everything else is denied by default (Tailscale default-deny)
+  ],
+}

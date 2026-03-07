@@ -12,6 +12,7 @@ import annotationsRouter from './routes/annotations.js';
 import labelsRouter from './routes/labels.js';
 import aiRouter from './routes/ai.js';
 import reviewsRouter from './routes/reviews.js';
+import tailnetRouter from './routes/tailnet.js';
 
 // Ensure db is initialized (tables created on import)
 import db from './db.js';
@@ -57,6 +58,7 @@ app.use('/api/annotations', annotationsRouter);
 app.use('/api/projects/:projectId/labels', labelsRouter);
 app.use('/api/ai', aiRouter);
 app.use('/api/reviews', reviewsRouter);
+app.use('/api/tailnet', tailnetRouter);
 
 // GET /api/images/:imageId — fetch single image by ID (project-agnostic)
 app.get('/api/images/:imageId', (req, res) => {
@@ -82,6 +84,28 @@ app.delete('/api/images/:imageId', (req, res) => {
   try { fs.unlinkSync(filePath); } catch { }
   db.prepare('DELETE FROM images WHERE id = ?').run(req.params.imageId);
   res.json({ success: true });
+});
+
+// GET /api/me — current user identity + admin status
+const TAILNET_SERVICE_URL = process.env.TAILNET_SERVICE_URL || 'http://127.0.0.1:4000';
+
+app.get('/api/me', async (req, res) => {
+  const user = req.user;
+  let isAdmin = false;
+  let tailnetServiceAvailable = false;
+  try {
+    const r = await fetch(
+      `${TAILNET_SERVICE_URL}/internal/check-admin/${encodeURIComponent(user)}`
+    );
+    if (r.ok) {
+      const data = await r.json();
+      isAdmin = data.isAdmin === true;
+      tailnetServiceAvailable = true;
+    }
+  } catch {
+    // tailscale-admin service not running — fail closed
+  }
+  res.json({ user, isAdmin, tailnetServiceAvailable });
 });
 
 // Health check
