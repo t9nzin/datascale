@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store';
 import * as api from '../api';
@@ -23,8 +23,13 @@ export default function ProjectList() {
   const [showModal, setShowModal] = useState(false);
   const [newName, setNewName] = useState('');
   const [newDescription, setNewDescription] = useState('');
+  const [newLabels, setNewLabels] = useState('');
+  const [imageFiles, setImageFiles] = useState([]);
   const [creating, setCreating] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const filesInputRef = useRef(null);
+  const folderInputRef = useRef(null);
 
   useEffect(() => {
     async function load() {
@@ -41,18 +46,47 @@ export default function ProjectList() {
     load();
   }, [setProjects]);
 
+  function resetModal() {
+    setNewName('');
+    setNewDescription('');
+    setNewLabels('');
+    setImageFiles([]);
+    setUploadStatus('');
+  }
+
   async function handleCreate() {
     if (!newName.trim()) return;
     setCreating(true);
     try {
+      setUploadStatus('Creating project...');
       const project = await api.createProject(newName.trim(), newDescription.trim());
+
+      // Upload images in batches of 50
+      if (imageFiles.length > 0) {
+        const BATCH = 50;
+        for (let i = 0; i < imageFiles.length; i += BATCH) {
+          const batch = imageFiles.slice(i, i + BATCH);
+          setUploadStatus(`Uploading images ${i + 1}–${Math.min(i + BATCH, imageFiles.length)} of ${imageFiles.length}...`);
+          await api.uploadImages(project.id, batch);
+        }
+      }
+
+      // Create label classes
+      const labelNames = newLabels.split(',').map((l) => l.trim()).filter(Boolean);
+      if (labelNames.length > 0) {
+        setUploadStatus('Creating label classes...');
+        for (const name of labelNames) {
+          await api.createLabel(project.id, name);
+        }
+      }
+
       setProjects([project, ...projects]);
-      setNewName('');
-      setNewDescription('');
+      resetModal();
       setShowModal(false);
       navigate(`/project/${project.id}`);
     } catch (err) {
       setError(err.message);
+      setUploadStatus('');
     } finally {
       setCreating(false);
     }
@@ -572,119 +606,330 @@ export default function ProjectList() {
             zIndex: 1000,
           }}
           onClick={(e) => {
-            if (e.target === e.currentTarget) {
+            if (e.target === e.currentTarget && !creating) {
               setShowModal(false);
-              setNewName('');
-              setNewDescription('');
+              resetModal();
             }
           }}
         >
           <div
             style={{
-              width: 420,
+              width: 500,
               background: '#ffffff',
               borderRadius: 10,
               border: '1px solid #e8e8e8',
               boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
               overflow: 'hidden',
+              maxHeight: '90vh',
+              overflowY: 'auto',
             }}
           >
+            {/* Header */}
             <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #f3f4f6' }}>
               <div style={{ fontSize: 17, fontWeight: 700, color: '#1f2937' }}>New Project</div>
               <div style={{ fontSize: 13, color: '#6b7280', marginTop: 3 }}>
-                Create a new annotation project
+                Set up your annotation project with images and labels
               </div>
             </div>
-            <div style={{ padding: '18px 24px' }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 5 }}>
-                Project Name
-              </label>
-              <input
-                autoFocus
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleCreate();
-                  if (e.key === 'Escape') { setShowModal(false); setNewName(''); setNewDescription(''); }
-                }}
-                placeholder="e.g. Street Signs Dataset"
-                style={{
-                  width: '100%',
-                  padding: '9px 12px',
-                  background: '#ffffff',
-                  border: '1px solid #d1d5db',
-                  borderRadius: 6,
-                  color: '#1f2937',
-                  fontSize: 13,
-                  outline: 'none',
-                  boxSizing: 'border-box',
-                  marginBottom: 14,
-                  transition: 'border-color 0.15s',
-                }}
-                onFocus={(e) => { e.target.style.borderColor = '#4f46e5'; }}
-                onBlur={(e) => { e.target.style.borderColor = '#d1d5db'; }}
-              />
-              <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 5 }}>
-                Description <span style={{ fontWeight: 400, color: '#9ca3af' }}>(optional)</span>
-              </label>
-              <textarea
-                value={newDescription}
-                onChange={(e) => setNewDescription(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Escape') { setShowModal(false); setNewName(''); setNewDescription(''); }
-                }}
-                placeholder="What will this dataset be used for?"
-                rows={3}
-                style={{
-                  width: '100%',
-                  padding: '9px 12px',
-                  background: '#ffffff',
-                  border: '1px solid #d1d5db',
-                  borderRadius: 6,
-                  color: '#1f2937',
-                  fontSize: 13,
-                  outline: 'none',
-                  resize: 'none',
-                  fontFamily: 'inherit',
-                  boxSizing: 'border-box',
-                  transition: 'border-color 0.15s',
-                }}
-                onFocus={(e) => { e.target.style.borderColor = '#4f46e5'; }}
-                onBlur={(e) => { e.target.style.borderColor = '#d1d5db'; }}
-              />
+
+            {/* Body */}
+            <div style={{ padding: '18px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+              {/* Project Name */}
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 5 }}>
+                  Project Name
+                </label>
+                <input
+                  autoFocus
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape' && !creating) { setShowModal(false); resetModal(); }
+                  }}
+                  placeholder="e.g. Street Signs Dataset"
+                  disabled={creating}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    background: '#ffffff',
+                    border: '1px solid #d1d5db',
+                    borderRadius: 6,
+                    color: '#1f2937',
+                    fontSize: 13,
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                    transition: 'border-color 0.15s',
+                  }}
+                  onFocus={(e) => { e.target.style.borderColor = '#4f46e5'; }}
+                  onBlur={(e) => { e.target.style.borderColor = '#d1d5db'; }}
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 5 }}>
+                  Description <span style={{ fontWeight: 400, color: '#9ca3af' }}>(optional)</span>
+                </label>
+                <textarea
+                  value={newDescription}
+                  onChange={(e) => setNewDescription(e.target.value)}
+                  placeholder="What will this dataset be used for?"
+                  rows={2}
+                  disabled={creating}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    background: '#ffffff',
+                    border: '1px solid #d1d5db',
+                    borderRadius: 6,
+                    color: '#1f2937',
+                    fontSize: 13,
+                    outline: 'none',
+                    resize: 'none',
+                    fontFamily: 'inherit',
+                    boxSizing: 'border-box',
+                    transition: 'border-color 0.15s',
+                  }}
+                  onFocus={(e) => { e.target.style.borderColor = '#4f46e5'; }}
+                  onBlur={(e) => { e.target.style.borderColor = '#d1d5db'; }}
+                />
+              </div>
+
+              {/* Class Labels */}
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 5 }}>
+                  Class Labels <span style={{ fontWeight: 400, color: '#9ca3af' }}>(optional, comma-separated)</span>
+                </label>
+                <input
+                  value={newLabels}
+                  onChange={(e) => setNewLabels(e.target.value)}
+                  placeholder="e.g. cat, dog, car, person"
+                  disabled={creating}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    background: '#ffffff',
+                    border: '1px solid #d1d5db',
+                    borderRadius: 6,
+                    color: '#1f2937',
+                    fontSize: 13,
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                    transition: 'border-color 0.15s',
+                    fontFamily: 'inherit',
+                  }}
+                  onFocus={(e) => { e.target.style.borderColor = '#4f46e5'; }}
+                  onBlur={(e) => { e.target.style.borderColor = '#d1d5db'; }}
+                />
+                {/* Label preview chips */}
+                {newLabels.trim() && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 8 }}>
+                    {newLabels.split(',').map((l) => l.trim()).filter(Boolean).map((label, i) => (
+                      <span
+                        key={i}
+                        style={{
+                          fontSize: 11,
+                          padding: '2px 8px',
+                          background: '#eef2ff',
+                          color: '#4f46e5',
+                          borderRadius: 10,
+                          fontWeight: 500,
+                        }}
+                      >
+                        {label}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Image Upload */}
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 5 }}>
+                  Images <span style={{ fontWeight: 400, color: '#9ca3af' }}>(optional)</span>
+                </label>
+
+                {/* Hidden file inputs */}
+                <input
+                  ref={filesInputRef}
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    setImageFiles((prev) => {
+                      const existing = new Set(prev.map((f) => f.name + f.size));
+                      return [...prev, ...files.filter((f) => !existing.has(f.name + f.size))];
+                    });
+                    e.target.value = '';
+                  }}
+                />
+                <input
+                  ref={folderInputRef}
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  webkitdirectory=""
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []).filter((f) =>
+                      f.type.startsWith('image/')
+                    );
+                    setImageFiles((prev) => {
+                      const existing = new Set(prev.map((f) => f.name + f.size));
+                      return [...prev, ...files.filter((f) => !existing.has(f.name + f.size))];
+                    });
+                    e.target.value = '';
+                  }}
+                />
+
+                {imageFiles.length === 0 ? (
+                  /* Drop zone */
+                  <div
+                    style={{
+                      border: '1.5px dashed #d1d5db',
+                      borderRadius: 8,
+                      padding: '20px 16px',
+                      textAlign: 'center',
+                      background: '#fafafa',
+                    }}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const files = Array.from(e.dataTransfer.files).filter((f) =>
+                        f.type.startsWith('image/')
+                      );
+                      setImageFiles((prev) => {
+                        const existing = new Set(prev.map((f) => f.name + f.size));
+                        return [...prev, ...files.filter((f) => !existing.has(f.name + f.size))];
+                      });
+                    }}
+                  >
+                    <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 10 }}>
+                      Drop images here, or
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                      <button
+                        type="button"
+                        onClick={() => filesInputRef.current?.click()}
+                        style={{
+                          padding: '6px 14px',
+                          background: '#ffffff',
+                          border: '1px solid #d1d5db',
+                          borderRadius: 6,
+                          color: '#374151',
+                          cursor: 'pointer',
+                          fontSize: 12,
+                          fontWeight: 500,
+                        }}
+                      >
+                        Select Images
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => folderInputRef.current?.click()}
+                        style={{
+                          padding: '6px 14px',
+                          background: '#ffffff',
+                          border: '1px solid #d1d5db',
+                          borderRadius: 6,
+                          color: '#374151',
+                          cursor: 'pointer',
+                          fontSize: 12,
+                          fontWeight: 500,
+                        }}
+                      >
+                        Select Folder
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  /* Files selected summary */
+                  <div
+                    style={{
+                      border: '1px solid #d1d5db',
+                      borderRadius: 8,
+                      padding: '12px 14px',
+                      background: '#f9fafb',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#1f2937' }}>
+                        {imageFiles.length} image{imageFiles.length !== 1 ? 's' : ''} selected
+                      </div>
+                      <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>
+                        {(imageFiles.reduce((s, f) => s + f.size, 0) / 1024 / 1024).toFixed(1)} MB total
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setImageFiles([])}
+                      disabled={creating}
+                      style={{
+                        padding: '4px 10px',
+                        background: 'transparent',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: 5,
+                        color: '#6b7280',
+                        cursor: 'pointer',
+                        fontSize: 12,
+                      }}
+                    >
+                      Clear
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
-            <div style={{ padding: '12px 24px 20px', display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => { setShowModal(false); setNewName(''); setNewDescription(''); }}
-                style={{
-                  padding: '8px 16px',
-                  background: '#ffffff',
-                  color: '#374151',
-                  border: '1px solid #d1d5db',
-                  borderRadius: 6,
-                  cursor: 'pointer',
-                  fontSize: 13,
-                  fontWeight: 500,
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleCreate}
-                disabled={!newName.trim() || creating}
-                style={{
-                  padding: '8px 20px',
-                  background: newName.trim() && !creating ? '#4f46e5' : '#e5e7eb',
-                  color: newName.trim() && !creating ? '#ffffff' : '#9ca3af',
-                  border: 'none',
-                  borderRadius: 6,
-                  cursor: newName.trim() && !creating ? 'pointer' : 'default',
-                  fontSize: 13,
-                  fontWeight: 600,
-                }}
-              >
-                {creating ? 'Creating...' : 'Create Project'}
-              </button>
+
+            {/* Footer */}
+            <div style={{ padding: '12px 24px 20px', borderTop: '1px solid #f3f4f6' }}>
+              {/* Upload status */}
+              {creating && uploadStatus && (
+                <div style={{ fontSize: 12, color: '#4f46e5', marginBottom: 10, textAlign: 'center' }}>
+                  {uploadStatus}
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => { setShowModal(false); resetModal(); }}
+                  disabled={creating}
+                  style={{
+                    padding: '8px 16px',
+                    background: '#ffffff',
+                    color: '#374151',
+                    border: '1px solid #d1d5db',
+                    borderRadius: 6,
+                    cursor: creating ? 'default' : 'pointer',
+                    fontSize: 13,
+                    fontWeight: 500,
+                    opacity: creating ? 0.5 : 1,
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCreate}
+                  disabled={!newName.trim() || creating}
+                  style={{
+                    padding: '8px 20px',
+                    background: newName.trim() && !creating ? '#4f46e5' : '#e5e7eb',
+                    color: newName.trim() && !creating ? '#ffffff' : '#9ca3af',
+                    border: 'none',
+                    borderRadius: 6,
+                    cursor: newName.trim() && !creating ? 'pointer' : 'default',
+                    fontSize: 13,
+                    fontWeight: 600,
+                  }}
+                >
+                  {creating ? 'Setting up...' : 'Create Project'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
