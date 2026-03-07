@@ -78,7 +78,7 @@ export async function deleteImage(imageId) {
 // ── Annotations ───────────────────────────────────────────
 
 export async function fetchAnnotations(imageId) {
-  return request(`${API}/images/${imageId}/annotations`);
+  return request(`${API}/annotations/image/${imageId}`);
 }
 
 export async function createAnnotation(data) {
@@ -161,27 +161,31 @@ export async function clipEmbed(imageId) {
   });
 }
 
-export async function nlAnnotate(imageId, command) {
-  return jsonPost(`${API}/ai/nl-annotate`, {
+export async function nlAnnotate(imageId, command, projectId) {
+  return jsonPost(`${API}/ai/agent/nl-annotate`, {
     image_id: imageId,
-    command,
+    project_id: projectId,
+    prompt: command,
   });
 }
 
-export async function qualityReview(imageId) {
-  return jsonPost(`${API}/ai/quality-review`, {
+export async function qualityReview(imageId, projectId) {
+  return jsonPost(`${API}/ai/agent/quality-review`, {
     image_id: imageId,
+    project_id: projectId,
   });
 }
 
 export async function datasetHealth(projectId) {
-  return request(`${API}/ai/dataset-health/${projectId}`);
+  return jsonPost(`${API}/ai/agent/dataset-health`, {
+    project_id: projectId,
+  });
 }
 
 // ── Reviews ───────────────────────────────────────────────
 
 export async function fetchReviewIssues(projectId) {
-  return request(`${API}/projects/${projectId}/reviews`);
+  return request(`${API}/reviews/project/${projectId}`);
 }
 
 export async function updateReviewIssue(id, status) {

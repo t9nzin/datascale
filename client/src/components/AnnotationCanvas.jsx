@@ -645,9 +645,10 @@ export default function AnnotationCanvas({ onAnnotationCreated }) {
       const { x: cx, y: cy } = getCanvasPos(e);
       const { x: ix, y: iy } = canvasToImage(cx, cy);
 
-      // Middle-click or space+click: start panning
-      if (e.button === 1 || (isSpaceDown.current && e.button === 0)) {
+      // Middle-click, space+click, or pan tool: start panning
+      if (e.button === 1 || (isSpaceDown.current && e.button === 0) || (activeTool === 'pan' && e.button === 0)) {
         isPanning.current = true;
+        setIsActivePan(true);
         dragStart.current = { x: cx, y: cy };
         dragStartPan.current = { x: pan.x, y: pan.y };
         e.preventDefault();
@@ -800,6 +801,7 @@ export default function AnnotationCanvas({ onAnnotationCreated }) {
     (e) => {
       if (isPanning.current) {
         isPanning.current = false;
+        setIsActivePan(false);
         return;
       }
 
@@ -988,8 +990,11 @@ export default function AnnotationCanvas({ onAnnotationCreated }) {
   // -----------------------------------------------------------------------
   // Cursor style
   // -----------------------------------------------------------------------
+  const [isActivePan, setIsActivePan] = useState(false);
+
   const cursorStyle = useMemo(() => {
-    if (isSpaceDown.current || isPanning.current) return 'grab';
+    if (isActivePan) return 'grabbing';
+    if (isSpaceDown.current) return 'grab';
     switch (activeTool) {
       case 'select':
         return 'default';
@@ -1004,7 +1009,7 @@ export default function AnnotationCanvas({ onAnnotationCreated }) {
       default:
         return 'default';
     }
-  }, [activeTool]);
+  }, [activeTool, isActivePan]);
 
   // -----------------------------------------------------------------------
   // Attach wheel listener with { passive: false } to allow preventDefault
@@ -1055,6 +1060,7 @@ export default function AnnotationCanvas({ onAnnotationCreated }) {
         onMouseLeave={() => {
           isPanning.current = false;
           isDragging.current = false;
+          setIsActivePan(false);
         }}
         onContextMenu={handleContextMenu}
       />

@@ -16,6 +16,7 @@ const SEVERITY_LABELS = {
 
 export default function ReviewPanel({ isOpen, onClose }) {
   const currentImage = useStore((s) => s.currentImage);
+  const currentProject = useStore((s) => s.currentProject);
   const reviewIssues = useStore((s) => s.reviewIssues);
   const setReviewIssues = useStore((s) => s.setReviewIssues);
   const annotations = useStore((s) => s.annotations);
@@ -31,7 +32,7 @@ export default function ReviewPanel({ isOpen, onClose }) {
     setLoading(true);
     setError(null);
     try {
-      const result = await api.qualityReview(currentImage.id);
+      const result = await api.qualityReview(currentImage.id, currentProject?.id);
       const issues = result.issues || result || [];
       setReviewIssues(Array.isArray(issues) ? issues : []);
     } catch (err) {

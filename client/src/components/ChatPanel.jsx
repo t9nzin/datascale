@@ -70,7 +70,7 @@ export default function ChatPanel() {
     });
 
     try {
-      const result = await api.nlAnnotate(currentImage.id, command);
+      const result = await api.nlAnnotate(currentImage.id, command, currentProject?.id);
       const annotations = result.annotations || [];
       const message = result.message || `Found ${annotations.length} result(s)`;
 

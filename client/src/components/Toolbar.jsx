@@ -2,12 +2,53 @@ import { useEffect, useState } from 'react';
 import { useStore } from '../store';
 import * as api from '../api';
 
+const ToolIcon = ({ id }) => {
+  const s = { width: 20, height: 20, stroke: 'currentColor', fill: 'none', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' };
+  switch (id) {
+    case 'select':
+      return (
+        <svg {...s} viewBox="0 0 24 24">
+          <path d="M5 3l3.5 16 3-6.5L18 9z" fill="currentColor" stroke="currentColor" />
+        </svg>
+      );
+    case 'click-segment':
+      return (
+        <svg {...s} viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="3" fill="currentColor" />
+          <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
+        </svg>
+      );
+    case 'box-segment':
+      return (
+        <svg {...s} viewBox="0 0 24 24">
+          <rect x="3" y="3" width="18" height="18" rx="2" strokeDasharray="4 2" />
+        </svg>
+      );
+    case 'segment-everything':
+      return (
+        <svg {...s} viewBox="0 0 24 24">
+          <circle cx="8" cy="8" r="4" />
+          <circle cx="17" cy="9" r="3" />
+          <circle cx="11" cy="17" r="4" />
+        </svg>
+      );
+    case 'pan':
+      return (
+        <svg {...s} viewBox="0 0 24 24">
+          <path d="M12 2l3 3h-2v4h4v-2l3 3-3 3v-2h-4v4h2l-3 3-3-3h2v-4H7v2l-3-3 3-3v2h4V5H9z" fill="currentColor" stroke="none" />
+        </svg>
+      );
+    default:
+      return null;
+  }
+};
+
 const tools = [
-  { id: 'select', label: 'S', title: 'Select (V)', key: 'v' },
-  { id: 'click-segment', label: 'P', title: 'Point Segment (C)', key: 'c' },
-  { id: 'box-segment', label: 'B', title: 'Box Segment (B)', key: 'b' },
-  { id: 'segment-everything', label: 'A', title: 'Segment All (E)', key: 'e' },
-  { id: 'pan', label: '~', title: 'Pan (Space)', key: ' ' },
+  { id: 'select', title: 'Select (V)', key: 'v' },
+  { id: 'click-segment', title: 'Click Segment (C)', key: 'c' },
+  { id: 'box-segment', title: 'Box Segment (B)', key: 'b' },
+  { id: 'segment-everything', title: 'Segment All (E)', key: 'e' },
+  { id: 'pan', title: 'Pan (Space)', key: ' ' },
 ];
 
 export default function Toolbar() {
@@ -123,7 +164,7 @@ export default function Toolbar() {
             }
           }}
         >
-          {tool.label}
+          <ToolIcon id={tool.id} />
         </button>
       ))}
 

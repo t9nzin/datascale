@@ -62,9 +62,11 @@ export const useStore = create((set, get) => ({
   datasetHealth: null,
   setDatasetHealth: (health) => set({ datasetHealth: health }),
 
-  // Connected users (presence)
+  // Connected users (presence) — array of username strings
   connectedUsers: [],
-  setConnectedUsers: (users) => set({ connectedUsers: users }),
+  setConnectedUsers: (users) => set({
+    connectedUsers: users.map(u => typeof u === 'string' ? u : u.user || '?')
+  }),
 
   // User cursors
   cursors: {},

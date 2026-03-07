@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import http from 'http';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 import { setupWebSocket } from './websocket.js';
@@ -13,7 +14,7 @@ import aiRouter from './routes/ai.js';
 import reviewsRouter from './routes/reviews.js';
 
 // Ensure db is initialized (tables created on import)
-import './db.js';
+import db from './db.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -55,6 +56,32 @@ app.use('/api/annotations', annotationsRouter);
 app.use('/api/projects/:projectId/labels', labelsRouter);
 app.use('/api/ai', aiRouter);
 app.use('/api/reviews', reviewsRouter);
+
+// GET /api/images/:imageId — fetch single image by ID (project-agnostic)
+app.get('/api/images/:imageId', (req, res) => {
+  const image = db.prepare('SELECT * FROM images WHERE id = ?').get(req.params.imageId);
+  if (!image) return res.status(404).json({ error: 'Image not found' });
+  res.json(image);
+});
+
+// GET /api/images/:imageId/file — serve the actual image file
+app.get('/api/images/:imageId/file', (req, res) => {
+  const image = db.prepare('SELECT * FROM images WHERE id = ?').get(req.params.imageId);
+  if (!image) return res.status(404).json({ error: 'Image not found' });
+  const filePath = path.join(__dirname, '..', 'uploads', image.project_id, image.filename);
+  if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'File not found' });
+  res.sendFile(filePath);
+});
+
+// DELETE /api/images/:imageId — delete image by ID (project-agnostic)
+app.delete('/api/images/:imageId', (req, res) => {
+  const image = db.prepare('SELECT * FROM images WHERE id = ?').get(req.params.imageId);
+  if (!image) return res.status(404).json({ error: 'Image not found' });
+  const filePath = path.join(__dirname, '..', 'uploads', image.project_id, image.filename);
+  try { fs.unlinkSync(filePath); } catch {}
+  db.prepare('DELETE FROM images WHERE id = ?').run(req.params.imageId);
+  res.json({ success: true });
+});
 
 // Health check
 app.get('/api/health', (req, res) => {

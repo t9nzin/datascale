@@ -121,8 +121,8 @@ router.post('/segment/everything', async (req, res, next) => {
 // POST /api/ai/segment/refine
 router.post('/segment/refine', async (req, res, next) => {
   try {
-    const { image_id, mask, points, labels } = req.body;
-    const result = await proxyWithImage('/segment/refine', image_id, { mask, points, labels });
+    const { image_id, mask_rle, positive_points, negative_points } = req.body;
+    const result = await proxyWithImage('/segment/refine', image_id, { mask_rle, positive_points, negative_points });
     res.json(result);
   } catch (err) {
     next(err);

@@ -43,7 +43,7 @@ db.exec(`
     type TEXT NOT NULL CHECK(type IN ('polygon', 'bbox', 'mask')),
     data TEXT NOT NULL,
     confidence REAL,
-    source TEXT NOT NULL DEFAULT 'manual' CHECK(source IN ('manual', 'sam-click', 'sam-box', 'sam-auto', 'nl-agent')),
+    source TEXT NOT NULL DEFAULT 'manual' CHECK(source IN ('manual', 'sam-click', 'sam-box', 'sam-auto', 'nl-agent', 'ai-segment')),
     created_by TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
