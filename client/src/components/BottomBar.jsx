@@ -10,7 +10,7 @@ function FitIcon() {
   );
 }
 
-export default function BottomBar() {
+export default function BottomBar({ uiScale = 1 }) {
   const zoom = useStore((s) => s.zoom);
   const setZoom = useStore((s) => s.setZoom);
   const setPan = useStore((s) => s.setPan);
@@ -51,6 +51,7 @@ export default function BottomBar() {
           padding: '6px 16px',
           boxShadow: '0 4px 20px rgba(108, 92, 231, 0.12)',
           userSelect: 'none',
+          zoom: uiScale,
         }}
       >
         <button

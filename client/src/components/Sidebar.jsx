@@ -1425,7 +1425,7 @@ function ReviewTabPanel() {
 
 // ── Main Sidebar Component ───────────────────────────────────────────────────
 
-export default function Sidebar() {
+export default function Sidebar({ uiScale = 1 }) {
   const [activeTab, setActiveTab] = useState('labels');
 
   return (
@@ -1436,6 +1436,7 @@ export default function Sidebar() {
         flexShrink: 0,
         height: '100%',
         borderRight: `1px solid ${BORDER}`,
+        zoom: uiScale,
       }}
     >
       {/* Part A: Icon Tab Bar */}

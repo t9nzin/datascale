@@ -26,6 +26,7 @@ function getInitials(name) {
 }
 
 export default function TopBar({
+  uiScale = 1,
   onOpenDashboard,
   onOpenReview,
   onToggleAnnotationVisibility,
@@ -81,6 +82,7 @@ export default function TopBar({
         flexShrink: 0,
         zIndex: 50,
         fontFamily: '-apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif',
+        zoom: uiScale,
       }}
     >
       {/* Back arrow */}

@@ -29,6 +29,18 @@ export default function ProjectView() {
   const [chatOpen, setChatOpen] = useState(false);
   const [annotationsVisible, setAnnotationsVisible] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [uiScale, setUiScale] = useState(1);
+
+  // Scale UI chrome proportionally on smaller screens (designed for 16" MBP @ 1728px)
+  useEffect(() => {
+    const DESIGN_WIDTH = 1728;
+    const update = () => {
+      setUiScale(Math.min(1, window.innerWidth / DESIGN_WIDTH));
+    };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
 
   const { subscribeToImage } = useWebSocket();
 
@@ -120,6 +132,7 @@ export default function ProjectView() {
     >
       {/* TopBar at top */}
       <TopBar
+        uiScale={uiScale}
         onOpenDashboard={() => setDashboardOpen(true)}
         onOpenReview={() => setReviewOpen(true)}
         annotationsVisible={annotationsVisible}
@@ -136,19 +149,19 @@ export default function ProjectView() {
       {/* Middle row: Sidebar (left) | AnnotationCanvas (center) | Toolbar (right) */}
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {/* Sidebar on the LEFT (icon tabs + content panel) */}
-        <Sidebar />
+        <Sidebar uiScale={uiScale} />
 
         {/* Center: Canvas + BottomBar stacked vertically, with Toolbar overlaid */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
           <AnnotationCanvas annotationsVisible={annotationsVisible} />
           {/* BottomBar and Toolbar float over the canvas */}
-          <BottomBar />
-          <Toolbar onToggleChat={() => setChatOpen((v) => !v)} />
+          <BottomBar uiScale={uiScale} />
+          <Toolbar uiScale={uiScale} onToggleChat={() => setChatOpen((v) => !v)} />
         </div>
       </div>
 
       {/* ChatPanel at the very bottom (collapsible) */}
-      {chatOpen && <ChatPanel />}
+      {chatOpen && <ChatPanel uiScale={uiScale} />}
 
       {/* DashboardPanel and ReviewPanel as modals (overlays) */}
       <DashboardPanel

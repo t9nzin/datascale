@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useStore } from '../store';
 import * as api from '../api';
 
-export default function ChatPanel() {
+export default function ChatPanel({ uiScale = 1 }) {
   const [input, setInput] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [panelHeight, setPanelHeight] = useState(250);
@@ -161,6 +161,7 @@ export default function ChatPanel() {
         display: 'flex',
         flexDirection: 'column',
         flexShrink: 0,
+        zoom: uiScale,
       }}
     >
       {/* Resize handle */}

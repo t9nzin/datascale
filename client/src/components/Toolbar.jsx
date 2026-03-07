@@ -284,7 +284,7 @@ const aiTools = [
   { id: 'box-segment', title: 'Box Segment (B)', key: 'b', Icon: BoxSegmentIcon },
 ];
 
-export default function Toolbar({ onToggleChat }) {
+export default function Toolbar({ uiScale = 1, onToggleChat }) {
   const activeTool = useStore((s) => s.activeTool);
   const setActiveTool = useStore((s) => s.setActiveTool);
   const currentImage = useStore((s) => s.currentImage);
@@ -504,6 +504,7 @@ export default function Toolbar({ onToggleChat }) {
           gap: 3,
           position: 'relative',
           pointerEvents: 'auto',
+          zoom: uiScale,
         }}
       >
         {/* Tooltip */}
