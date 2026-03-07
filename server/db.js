@@ -77,4 +77,11 @@ db.exec(`
   );
 `);
 
+// Migration: add status column to images table
+try {
+  db.exec(`ALTER TABLE images ADD COLUMN status TEXT NOT NULL DEFAULT 'pending'`);
+} catch {
+  // Column already exists
+}
+
 export default db;

@@ -123,7 +123,14 @@ export default function ProjectView() {
         onOpenDashboard={() => setDashboardOpen(true)}
         onOpenReview={() => setReviewOpen(true)}
         annotationsVisible={annotationsVisible}
-        onToggleAnnotations={() => setAnnotationsVisible((v) => !v)}
+        onToggleAnnotationVisibility={() => setAnnotationsVisible((v) => !v)}
+        onNavigateImage={(dir) => {
+          const idx = currentImage ? images.findIndex((img) => img.id === currentImage.id) : -1;
+          const nextIdx = dir === 'next' ? idx + 1 : idx - 1;
+          if (nextIdx >= 0 && nextIdx < images.length) {
+            setCurrentImage(images[nextIdx]);
+          }
+        }}
       />
 
       {/* Middle row: Sidebar (left) | AnnotationCanvas (center) | Toolbar (right) */}

@@ -11,7 +11,7 @@ const ZOOM_FACTOR = 1.1;
 const HANDLE_SIZE = 6; // half-size of selection corner handles (px)
 const CURSOR_BROADCAST_INTERVAL = 50; // ms
 const POINT_RADIUS = 5; // click-segment point indicator radius
-const DEFAULT_ANNOTATION_COLOR = '#45B7D1';
+const DEFAULT_ANNOTATION_COLOR = '#888';
 
 // ---------------------------------------------------------------------------
 // Helpers

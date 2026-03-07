@@ -11,6 +11,7 @@ router.get('/', (req, res) => {
       (SELECT COUNT(*) FROM images WHERE project_id = p.id) AS image_count,
       (SELECT COUNT(*) FROM annotations WHERE project_id = p.id) AS annotation_count,
       (SELECT COUNT(*) FROM label_classes WHERE project_id = p.id) AS label_count,
+      (SELECT COUNT(*) FROM images WHERE project_id = p.id AND status = 'done') AS done_count,
       (SELECT i.id FROM images i WHERE i.project_id = p.id ORDER BY i.created_at DESC LIMIT 1) AS thumbnail_image_id
     FROM projects p
     ORDER BY p.updated_at DESC

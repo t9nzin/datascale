@@ -73,6 +73,18 @@ app.get('/api/images/:imageId/file', (req, res) => {
   res.sendFile(filePath);
 });
 
+// PATCH /api/images/:imageId/status — update image status (pending/done)
+app.patch('/api/images/:imageId/status', (req, res) => {
+  const { status } = req.body;
+  if (!status || !['pending', 'done'].includes(status)) {
+    return res.status(400).json({ error: 'Status must be "pending" or "done"' });
+  }
+  const image = db.prepare('SELECT * FROM images WHERE id = ?').get(req.params.imageId);
+  if (!image) return res.status(404).json({ error: 'Image not found' });
+  db.prepare('UPDATE images SET status = ? WHERE id = ?').run(status, req.params.imageId);
+  res.json({ ...image, status });
+});
+
 // DELETE /api/images/:imageId — delete image by ID (project-agnostic)
 app.delete('/api/images/:imageId', (req, res) => {
   const image = db.prepare('SELECT * FROM images WHERE id = ?').get(req.params.imageId);

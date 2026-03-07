@@ -75,6 +75,14 @@ export async function deleteImage(imageId) {
   return jsonDelete(`${API}/images/${imageId}`);
 }
 
+export async function updateImageStatus(imageId, status) {
+  return request(`${API}/images/${imageId}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status }),
+  });
+}
+
 // ── Annotations ───────────────────────────────────────────
 
 export async function fetchAnnotations(imageId) {

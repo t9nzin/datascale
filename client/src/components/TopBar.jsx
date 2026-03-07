@@ -39,6 +39,7 @@ export default function TopBar({
   const images = useStore((s) => s.images);
   const currentImage = useStore((s) => s.currentImage);
   const annotations = useStore((s) => s.annotations);
+  const updateImage = useStore((s) => s.updateImage);
 
   const [moreOpen, setMoreOpen] = useState(false);
   const [saveFlash, setSaveFlash] = useState(false);
@@ -338,6 +339,53 @@ export default function TopBar({
             </svg>
           )}
         </button>
+
+        {/* Mark as Done toggle */}
+        {currentImage && (
+          <button
+            onClick={async () => {
+              const newStatus = currentImage.status === 'done' ? 'pending' : 'done';
+              try {
+                await api.updateImageStatus(currentImage.id, newStatus);
+                updateImage(currentImage.id, { status: newStatus });
+              } catch (err) {
+                console.error('Failed to update status:', err);
+              }
+            }}
+            title={currentImage.status === 'done' ? 'Mark as not done' : 'Mark as done'}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '8px 18px',
+              borderRadius: 24,
+              border: currentImage.status === 'done' ? '2px solid #00b894' : '2px solid #e5e5e5',
+              background: currentImage.status === 'done' ? 'rgba(0, 184, 148, 0.08)' : 'transparent',
+              cursor: 'pointer',
+              fontSize: 16,
+              fontWeight: 600,
+              color: currentImage.status === 'done' ? '#00b894' : '#999',
+              transition: 'all 0.2s',
+            }}
+            onMouseEnter={(e) => {
+              if (currentImage.status !== 'done') {
+                e.currentTarget.style.borderColor = '#00b894';
+                e.currentTarget.style.color = '#00b894';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (currentImage.status !== 'done') {
+                e.currentTarget.style.borderColor = '#e5e5e5';
+                e.currentTarget.style.color = '#999';
+              }
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            {currentImage.status === 'done' ? 'Done' : 'Mark Done'}
+          </button>
+        )}
 
         {/* Save / check button */}
         <button
