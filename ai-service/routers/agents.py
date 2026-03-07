@@ -6,7 +6,7 @@ import logging
 import math
 import re
 from collections import Counter, defaultdict
-from typing import Any
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 import torch
@@ -71,15 +71,15 @@ def _segment_everything(np_img: np.ndarray, points_per_side: int = 32) -> list[d
 class NLAnnotateMatch(BaseModel):
     label: str
     confidence: float
-    bbox: list[int]  # [x, y, w, h]
-    polygon: list[list[int]]
-    rle: dict[str, Any]
+    bbox: List[int]  # [x, y, w, h]
+    polygon: List[List[int]]
+    rle: Dict[str, Any]
 
 
 class NLAnnotateResponse(BaseModel):
     command: str
     parsed_query: str
-    matches: list[NLAnnotateMatch]
+    matches: List[NLAnnotateMatch]
     total_segments: int
 
 
@@ -129,7 +129,7 @@ async def nl_annotate(
     target_vec = text_emb[0]  # the query noun vector
 
     # 3. Score each segment.
-    matches: list[NLAnnotateMatch] = []
+    matches: List[NLAnnotateMatch] = []
     for entry in masks_data:
         x, y, w, h = [int(v) for v in entry["bbox"]]
         # Guard against degenerate crops.
@@ -175,12 +175,12 @@ class QualityIssue(BaseModel):
     type: str  # "label_mismatch" | "missing_annotation" | "geometric_anomaly"
     severity: str  # "high" | "medium" | "low"
     message: str
-    annotation_id: str | None = None
-    suggestion: str | None = None
+    annotation_id: Optional[str] = None
+    suggestion: Optional[str] = None
 
 
 class QualityReviewResponse(BaseModel):
-    issues: list[QualityIssue]
+    issues: List[QualityIssue]
     summary: str
 
 
@@ -209,7 +209,7 @@ async def quality_review(
     pil_img, np_img = await image_from_upload(image)
     img_w, img_h = pil_img.size
 
-    issues: list[QualityIssue] = []
+    issues: List[QualityIssue] = []
 
     all_labels = list({a["label"] for a in annot_list if "label" in a})
 
@@ -388,20 +388,20 @@ async def quality_review(
 class AnnotatorStats(BaseModel):
     annotator: str
     count: int
-    labels: dict[str, int]
+    labels: Dict[str, int]
 
 
 class DatasetHealthResponse(BaseModel):
     total_annotations: int
     total_images: int
-    class_distribution: dict[str, int]
-    class_percentages: dict[str, float]
+    class_distribution: Dict[str, int]
+    class_percentages: Dict[str, float]
     images_annotated: int
     images_unannotated: int
     annotation_progress: float  # 0-1
-    per_annotator: list[AnnotatorStats]
+    per_annotator: List[AnnotatorStats]
     quality_score: float  # 0-100
-    warnings: list[str]
+    warnings: List[str]
 
 
 @router.post("/dataset-health", response_model=DatasetHealthResponse)

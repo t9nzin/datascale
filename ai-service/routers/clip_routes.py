@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, List
 
 import numpy as np
 import torch
@@ -54,7 +54,7 @@ class ClassifyResult(BaseModel):
     score: float
 
 
-@router.post("/classify", response_model=list[ClassifyResult])
+@router.post("/classify", response_model=List[ClassifyResult])
 async def clip_classify(
     image: UploadFile = File(...),
     labels: str = Form(...),
@@ -110,7 +110,7 @@ async def clip_embed(image: UploadFile = File(...)):
 
 class EmbeddingEntry(BaseModel):
     image_id: str
-    embedding: list[float]
+    embedding: List[float]
 
 
 class SearchResultItem(BaseModel):
@@ -118,7 +118,7 @@ class SearchResultItem(BaseModel):
     score: float
 
 
-@router.post("/search", response_model=list[SearchResultItem])
+@router.post("/search", response_model=List[SearchResultItem])
 async def clip_search(
     query: str = Form(...),
     embeddings: str = Form(...),
@@ -166,10 +166,10 @@ class RegionBox(BaseModel):
 
 class RegionClassification(BaseModel):
     region: RegionBox
-    scores: list[ClassifyResult]
+    scores: List[ClassifyResult]
 
 
-@router.post("/classify-regions", response_model=list[RegionClassification])
+@router.post("/classify-regions", response_model=List[RegionClassification])
 async def clip_classify_regions(
     image: UploadFile = File(...),
     regions: str = Form(...),

@@ -3,7 +3,7 @@ TODO:
 [] Click-to-Segment 
 - User clicks a point on an object -> MobileSAM generates a pixel-perfect mask
 
-[] Segment Everything 
+[X] Segment Everything 
 - Click one button: SAM auto-segments every object in the image
 - User then just assigns labels to pre-cut segments 
 - Turns annotation from "draw and label" to just label 

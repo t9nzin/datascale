@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, Dict, List
 
 import numpy as np
 import torch
@@ -39,8 +39,8 @@ class BoxPrompt(BaseModel):
 
 
 class MaskResult(BaseModel):
-    polygon: list[list[int]]
-    rle: dict[str, Any]
+    polygon: List[List[int]]
+    rle: Dict[str, Any]
     score: float
 
 
@@ -48,7 +48,7 @@ class MaskResult(BaseModel):
 # POST /segment/click
 # ---------------------------------------------------------------------------
 
-@router.post("/click", response_model=list[MaskResult])
+@router.post("/click", response_model=List[MaskResult])
 async def segment_click(
     image: UploadFile = File(...),
     points: str = Form(...),
