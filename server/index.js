@@ -26,8 +26,11 @@ const PORT = process.env.PORT || 3000;
 // CORS — allow localhost origins
 app.use(cors({
   origin: (origin, callback) => {
-    // Notem ipv4 and ipv6 are included since we have localhost
-    if (!origin || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+    if (
+      !origin ||
+      /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin) ||
+      /^https:\/\/.*\.ts\.net(:\d+)?$/.test(origin)
+    ) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
@@ -35,6 +38,8 @@ app.use(cors({
   },
   credentials: true,
 }));
+
+app.options('*', cors());
 
 // Body parsing
 app.use(express.json({ limit: '50mb' }));
