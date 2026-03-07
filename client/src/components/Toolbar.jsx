@@ -32,6 +32,12 @@ const ToolIcon = ({ id }) => {
           <circle cx="11" cy="17" r="4" />
         </svg>
       );
+    case 'polygon':
+      return (
+        <svg {...s} viewBox="0 0 24 24">
+          <polygon points="12,3 21,9 18,20 6,20 3,9" />
+        </svg>
+      );
     case 'pan':
       return (
         <svg {...s} viewBox="0 0 24 24">
@@ -45,6 +51,7 @@ const ToolIcon = ({ id }) => {
 
 const tools = [
   { id: 'select', title: 'Select (V)', key: 'v' },
+  { id: 'polygon', title: 'Polygon (P)', key: 'p' },
   { id: 'click-segment', title: 'Click Segment (C)', key: 'c' },
   { id: 'box-segment', title: 'Box Segment (B)', key: 'b' },
   { id: 'pan', title: 'Pan (Space)', key: ' ' },

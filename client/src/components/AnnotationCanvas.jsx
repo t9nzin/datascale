@@ -100,6 +100,10 @@ export default function AnnotationCanvas({ onAnnotationCreated }) {
   // Click-segment accumulated points
   const [segPoints, setSegPoints] = useState([]);     // [{ x, y, label }]  label: 1=fg, 0=bg
 
+  // Polygon tool state
+  const [polyPoints, setPolyPoints] = useState([]);   // [{ x, y }] in image coords
+  const polyMousePos = useRef(null);                   // current mouse pos in image coords (for preview)
+
   // Store bindings
   const currentImage = useStore((s) => s.currentImage);
   const annotations = useStore((s) => s.annotations);
@@ -296,6 +300,41 @@ export default function AnnotationCanvas({ onAnnotationCreated }) {
       }
     }
 
+    // Draw in-progress polygon
+    if (polyPoints.length > 0) {
+      octx.save();
+      octx.strokeStyle = '#FFD700';
+      octx.lineWidth = 1.5;
+      octx.setLineDash([5, 3]);
+      octx.beginPath();
+      const firstPt = imageToCanvas(polyPoints[0].x, polyPoints[0].y);
+      octx.moveTo(firstPt.x, firstPt.y);
+      for (let i = 1; i < polyPoints.length; i++) {
+        const cp = imageToCanvas(polyPoints[i].x, polyPoints[i].y);
+        octx.lineTo(cp.x, cp.y);
+      }
+      // Preview line to current mouse position
+      if (polyMousePos.current) {
+        const mp = imageToCanvas(polyMousePos.current.x, polyMousePos.current.y);
+        octx.lineTo(mp.x, mp.y);
+      }
+      octx.stroke();
+      octx.setLineDash([]);
+      // Draw vertex dots
+      for (let i = 0; i < polyPoints.length; i++) {
+        const cp = imageToCanvas(polyPoints[i].x, polyPoints[i].y);
+        octx.beginPath();
+        octx.arc(cp.x, cp.y, i === 0 ? 6 : 4, 0, Math.PI * 2);
+        // First point gets a bigger green ring to indicate "close here"
+        octx.fillStyle = i === 0 ? '#FFD700' : '#ffffff';
+        octx.fill();
+        octx.strokeStyle = '#333';
+        octx.lineWidth = 1;
+        octx.stroke();
+      }
+      octx.restore();
+    }
+
     // Draw other users' cursors
     for (const [user, pos] of Object.entries(cursors)) {
       if (user === currentUser) continue;
@@ -334,6 +373,7 @@ export default function AnnotationCanvas({ onAnnotationCreated }) {
     currentUser,
     labelClasses,
     segPoints,
+    polyPoints,
     isAiLoading,
     imageToCanvas,
   ]);
@@ -631,6 +671,35 @@ export default function AnnotationCanvas({ onAnnotationCreated }) {
   );
 
   // -----------------------------------------------------------------------
+  // Polygon finish
+  // -----------------------------------------------------------------------
+  const finishPolygon = useCallback(
+    async (points) => {
+      if (!currentImage?.id || points.length < 3) return;
+      const polygonData = points.map((p) => [p.x, p.y]);
+      const newAnn = {
+        image_id: currentImage.id,
+        project_id: currentImage.project_id,
+        label: activeLabel?.name || null,
+        type: 'polygon',
+        data: polygonData,
+        source: 'manual',
+      };
+      try {
+        const saved = await api.createAnnotation(newAnn);
+        addAnnotation(saved);
+        onAnnotationCreated?.(saved);
+      } catch (err) {
+        console.error('Failed to save polygon:', err);
+        addAnnotation({ ...newAnn, id: 'temp-' + Date.now() });
+      }
+      setPolyPoints([]);
+      polyMousePos.current = null;
+    },
+    [currentImage?.id, currentImage?.project_id, activeLabel, addAnnotation, onAnnotationCreated]
+  );
+
+  // -----------------------------------------------------------------------
   // Mouse handlers
   // -----------------------------------------------------------------------
 
@@ -696,6 +765,20 @@ export default function AnnotationCanvas({ onAnnotationCreated }) {
               startY: iy,
             };
           }
+        } else if (activeTool === 'polygon') {
+          const pt = { x: Math.round(ix), y: Math.round(iy) };
+          if (polyPoints.length >= 3) {
+            // Check if clicking near the first point to close
+            const first = imageToCanvas(polyPoints[0].x, polyPoints[0].y);
+            const { x: cx2, y: cy2 } = imageToCanvas(pt.x, pt.y);
+            const dist = Math.hypot(cx2 - first.x, cy2 - first.y);
+            if (dist < 12) {
+              // Close polygon and save
+              finishPolygon(polyPoints);
+              return;
+            }
+          }
+          setPolyPoints((prev) => [...prev, pt]);
         } else if (activeTool === 'click-segment') {
           // Left click = foreground point (label=1)
           const newPoints = [...segPoints, { x: Math.round(ix), y: Math.round(iy), label: 1 }];
@@ -716,9 +799,9 @@ export default function AnnotationCanvas({ onAnnotationCreated }) {
       }
     },
     [
-      getCanvasPos, canvasToImage, pan, activeTool, hitTest, hitTestAiButtons,
-      segPoints, activeLabel, aiResults, addAnnotation, setSelectedAnnotation,
-      setAiResults, onAnnotationCreated,
+      getCanvasPos, canvasToImage, imageToCanvas, pan, activeTool, hitTest, hitTestAiButtons,
+      segPoints, polyPoints, finishPolygon, activeLabel, aiResults, addAnnotation,
+      setSelectedAnnotation, setAiResults, onAnnotationCreated,
     ]
   );
 
@@ -783,6 +866,11 @@ export default function AnnotationCanvas({ onAnnotationCreated }) {
         return;
       }
 
+      // Update polygon preview line
+      if (activeTool === 'polygon') {
+        polyMousePos.current = { x: ix, y: iy };
+      }
+
       // Cursor broadcasting (throttled)
       const now = performance.now();
       if (now - lastCursorBroadcast.current > CURSOR_BROADCAST_INTERVAL) {
@@ -792,7 +880,7 @@ export default function AnnotationCanvas({ onAnnotationCreated }) {
     },
     [
       getCanvasPos, canvasToImage, activeTool, selectedAnnotation,
-      setPan, updateAnnotation,
+      setPan, updateAnnotation, polyPoints,
     ]
   );
 
@@ -879,6 +967,8 @@ export default function AnnotationCanvas({ onAnnotationCreated }) {
       if (e.code === 'Escape') {
         setSelectedAnnotation(null);
         setSegPoints([]);
+        setPolyPoints([]);
+        polyMousePos.current = null;
         boxDrawing.current = null;
       }
       if (e.code === 'Delete' || e.code === 'Backspace') {
@@ -1021,9 +1111,11 @@ export default function AnnotationCanvas({ onAnnotationCreated }) {
     return () => overlay.removeEventListener('wheel', handleWheel);
   }, [handleWheel]);
 
-  // Reset segment points when tool changes
+  // Reset segment/polygon points when tool changes
   useEffect(() => {
     setSegPoints([]);
+    setPolyPoints([]);
+    polyMousePos.current = null;
     boxDrawing.current = null;
   }, [activeTool]);
 
@@ -1063,6 +1155,11 @@ export default function AnnotationCanvas({ onAnnotationCreated }) {
           setIsActivePan(false);
         }}
         onContextMenu={handleContextMenu}
+        onDoubleClick={(e) => {
+          if (activeTool === 'polygon' && polyPoints.length >= 3) {
+            finishPolygon(polyPoints);
+          }
+        }}
       />
       {/* Image loading indicator */}
       {isImageLoading && (
