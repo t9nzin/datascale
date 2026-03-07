@@ -789,6 +789,12 @@ export default function AnnotationCanvas({ onAnnotationCreated, annotationsVisib
               startX: ix,
               startY: iy,
             };
+          } else {
+            // No annotation hit — pan the canvas
+            isPanning.current = true;
+            setIsActivePan(true);
+            dragStart.current = { x: cx, y: cy };
+            dragStartPan.current = { x: pan.x, y: pan.y };
           }
         } else if (activeTool === 'polygon') {
           const pt = { x: Math.round(ix), y: Math.round(iy) };
@@ -1114,7 +1120,7 @@ export default function AnnotationCanvas({ onAnnotationCreated, annotationsVisib
     if (isSpaceDown.current) return 'grab';
     switch (activeTool) {
       case 'select':
-        return 'default';
+        return 'grab';
       case 'click-segment':
         return 'crosshair';
       case 'bbox':
