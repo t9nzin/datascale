@@ -25,6 +25,7 @@ const PORT = process.env.PORT || 3000;
 // CORS — allow localhost origins
 app.use(cors({
   origin: (origin, callback) => {
+    // Notem ipv4 and ipv6 are included since we have localhost
     if (!origin || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
       callback(null, true);
     } else {
