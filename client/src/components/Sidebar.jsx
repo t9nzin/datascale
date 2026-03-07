@@ -17,7 +17,7 @@ function parseData(data) {
 const ACCENT = '#6C5CE7';
 const ACCENT_BG = 'rgba(108, 92, 231, 0.10)';
 const BORDER = '#e5e5e5';
-const TEXT_PRIMARY = '#1a1a1a';
+const TEXT_PRIMARY = '#555';
 const TEXT_SECONDARY = '#888';
 const TEXT_MUTED = '#aaa';
 
@@ -32,8 +32,8 @@ const defaultColors = ['#4a9eff', '#ff4a4a', '#4aff4a', '#ffff4a', '#ff4aff', '#
 // ── Icon Components ──────────────────────────────────────────────────────────
 
 const tabIconProps = {
-  width: 24,
-  height: 24,
+  width: 36,
+  height: 36,
   viewBox: '0 0 24 24',
   fill: 'none',
   stroke: 'currentColor',
@@ -82,7 +82,7 @@ function ShieldIcon() {
 
 function SparkleSmallIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1">
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1">
       <path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5L12 2z" />
     </svg>
   );
@@ -90,7 +90,7 @@ function SparkleSmallIcon() {
 
 function TrashSmallIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="3 6 5 6 21 6" />
       <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
       <path d="M10 11v6M14 11v6" />
@@ -113,9 +113,9 @@ function TypeBadge({ type }) {
   return (
     <span
       style={{
-        fontSize: 11,
-        padding: '2px 7px',
-        borderRadius: 3,
+        fontSize: 16,
+        padding: '3px 10px',
+        borderRadius: 4,
         background: '#f0f0f0',
         color: TEXT_SECONDARY,
         fontWeight: 500,
@@ -239,24 +239,24 @@ function LabelsPanel() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Header */}
-      <div style={{ padding: '16px 16px 12px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 17, fontWeight: 700, color: TEXT_PRIMARY }}>Annotations</span>
+      <div style={{ padding: '24px 24px 18px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <span style={{ fontSize: 26, fontWeight: 700, color: TEXT_PRIMARY }}>Annotations</span>
           <span
             style={{
-              fontSize: 13,
+              fontSize: 20,
               fontWeight: 600,
               color: ACCENT,
               background: ACCENT_BG,
-              padding: '3px 10px',
-              borderRadius: 10,
+              padding: '4px 14px',
+              borderRadius: 14,
             }}
           >
             {annotations.length + aiResults.length}
           </span>
         </div>
         {activeLabel && (
-          <div style={{ fontSize: 14, color: TEXT_SECONDARY, marginTop: 4 }}>
+          <div style={{ fontSize: 21, color: TEXT_SECONDARY, marginTop: 6 }}>
             Group: {activeLabel.name}
           </div>
         )}
@@ -267,7 +267,7 @@ function LabelsPanel() {
         style={{
           display: 'flex',
           borderBottom: `1px solid ${BORDER}`,
-          margin: '0 16px',
+          margin: '0 24px',
         }}
       >
         {['classes', 'layers'].map((tab) => (
@@ -276,13 +276,13 @@ function LabelsPanel() {
             onClick={() => setSubTab(tab)}
             style={{
               flex: 1,
-              padding: '10px 0',
-              fontSize: 15,
+              padding: '15px 0',
+              fontSize: 22,
               fontWeight: subTab === tab ? 600 : 400,
               color: subTab === tab ? ACCENT : TEXT_SECONDARY,
               background: 'transparent',
               border: 'none',
-              borderBottom: subTab === tab ? `2.5px solid ${ACCENT}` : '2.5px solid transparent',
+              borderBottom: subTab === tab ? `3px solid ${ACCENT}` : '3px solid transparent',
               cursor: 'pointer',
               textTransform: 'capitalize',
               transition: 'color 0.15s',
@@ -294,7 +294,7 @@ function LabelsPanel() {
       </div>
 
       {/* Content area */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '10px 0' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 0' }}>
         {subTab === 'classes' && (
           <>
             {/* Active / used classes */}
@@ -311,12 +311,12 @@ function LabelsPanel() {
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 12,
+                    gap: 18,
                     width: '100%',
-                    padding: '8px 16px',
+                    padding: '12px 24px',
                     background: isActive ? ACCENT_BG : 'transparent',
                     border: 'none',
-                    borderLeft: isActive ? `3px solid ${ACCENT}` : '3px solid transparent',
+                    borderLeft: isActive ? `4px solid ${ACCENT}` : '4px solid transparent',
                     cursor: 'pointer',
                     textAlign: 'left',
                     transition: 'background 0.1s',
@@ -330,8 +330,8 @@ function LabelsPanel() {
                 >
                   <span
                     style={{
-                      width: 12,
-                      height: 12,
+                      width: 18,
+                      height: 18,
                       borderRadius: '50%',
                       background: lc.color || '#4a9eff',
                       flexShrink: 0,
@@ -339,7 +339,7 @@ function LabelsPanel() {
                   />
                   <span
                     style={{
-                      fontSize: 14,
+                      fontSize: 21,
                       color: isActive ? ACCENT : TEXT_PRIMARY,
                       fontWeight: isActive ? 600 : 400,
                       flex: 1,
@@ -352,11 +352,11 @@ function LabelsPanel() {
                   </span>
                   <span
                     style={{
-                      fontSize: 12,
+                      fontSize: 18,
                       color: TEXT_SECONDARY,
                       background: '#f0f0f0',
-                      padding: '2px 7px',
-                      borderRadius: 8,
+                      padding: '3px 10px',
+                      borderRadius: 12,
                       fontWeight: 500,
                     }}
                   >
@@ -373,8 +373,8 @@ function LabelsPanel() {
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
-                      borderRadius: 4,
-                      padding: 2,
+                      borderRadius: 6,
+                      padding: 3,
                       transition: 'color 0.1s, background 0.1s',
                     }}
                     onMouseEnter={(e) => {
@@ -397,9 +397,9 @@ function LabelsPanel() {
               <>
                 <div
                   style={{
-                    fontSize: 14,
+                    fontSize: 21,
                     color: TEXT_PRIMARY,
-                    padding: '14px 16px 6px',
+                    padding: '21px 24px 9px',
                     fontWeight: 600,
                   }}
                 >
@@ -414,12 +414,12 @@ function LabelsPanel() {
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 12,
+                        gap: 18,
                         width: '100%',
-                        padding: '8px 16px',
+                        padding: '12px 24px',
                         background: isActive ? ACCENT_BG : 'transparent',
                         border: 'none',
-                        borderLeft: isActive ? `3px solid ${ACCENT}` : '3px solid transparent',
+                        borderLeft: isActive ? `4px solid ${ACCENT}` : '4px solid transparent',
                         cursor: 'pointer',
                         textAlign: 'left',
                         opacity: 0.6,
@@ -436,8 +436,8 @@ function LabelsPanel() {
                     >
                       <span
                         style={{
-                          width: 12,
-                          height: 12,
+                          width: 18,
+                          height: 18,
                           borderRadius: '50%',
                           background: lc.color || '#4a9eff',
                           flexShrink: 0,
@@ -445,7 +445,7 @@ function LabelsPanel() {
                       />
                       <span
                         style={{
-                          fontSize: 14,
+                          fontSize: 21,
                           color: TEXT_MUTED,
                           flex: 1,
                           overflow: 'hidden',
@@ -482,8 +482,8 @@ function LabelsPanel() {
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
-                          borderRadius: 4,
-                          padding: 2,
+                          borderRadius: 6,
+                          padding: 3,
                           transition: 'color 0.1s, background 0.1s',
                         }}
                         onMouseEnter={(e) => {
@@ -504,7 +504,7 @@ function LabelsPanel() {
             )}
 
             {labelClasses.length === 0 && (
-              <div style={{ padding: '24px 16px', color: TEXT_MUTED, fontSize: 13, textAlign: 'center' }}>
+              <div style={{ padding: '36px 24px', color: TEXT_MUTED, fontSize: 20, textAlign: 'center' }}>
                 No classes defined yet
               </div>
             )}
@@ -517,9 +517,9 @@ function LabelsPanel() {
       </div>
 
       {/* Bottom actions */}
-      <div style={{ padding: '12px 16px', borderTop: `1px solid ${BORDER}` }}>
+      <div style={{ padding: '18px 24px', borderTop: `1px solid ${BORDER}` }}>
         {addingLabel ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <input
               autoFocus
               value={newLabelName}
@@ -531,26 +531,26 @@ function LabelsPanel() {
               placeholder="Class name"
               style={{
                 width: '100%',
-                fontSize: 14,
-                padding: '8px 10px',
+                fontSize: 21,
+                padding: '12px 15px',
                 background: '#fff',
                 border: `1px solid ${BORDER}`,
-                borderRadius: 6,
+                borderRadius: 9,
                 color: TEXT_PRIMARY,
                 outline: 'none',
               }}
               onFocus={(e) => { e.currentTarget.style.borderColor = ACCENT; }}
               onBlur={(e) => { e.currentTarget.style.borderColor = BORDER; }}
             />
-            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {defaultColors.map((c) => (
                 <button
                   key={c}
                   onClick={() => setNewLabelColor(c)}
                   style={{
-                    width: 22,
-                    height: 22,
-                    borderRadius: 4,
+                    width: 33,
+                    height: 33,
+                    borderRadius: 6,
                     background: c,
                     border: newLabelColor === c ? `2px solid ${TEXT_PRIMARY}` : '2px solid transparent',
                     cursor: 'pointer',
@@ -560,17 +560,17 @@ function LabelsPanel() {
                 />
               ))}
             </div>
-            <div style={{ display: 'flex', gap: 6 }}>
+            <div style={{ display: 'flex', gap: 9 }}>
               <button
                 onClick={handleAddLabel}
                 style={{
                   flex: 1,
-                  fontSize: 13,
-                  padding: '8px 12px',
+                  fontSize: 20,
+                  padding: '12px 18px',
                   background: ACCENT,
                   color: '#fff',
                   border: 'none',
-                  borderRadius: 6,
+                  borderRadius: 9,
                   cursor: 'pointer',
                   fontWeight: 600,
                 }}
@@ -580,12 +580,12 @@ function LabelsPanel() {
               <button
                 onClick={() => setAddingLabel(false)}
                 style={{
-                  fontSize: 13,
-                  padding: '8px 12px',
+                  fontSize: 20,
+                  padding: '12px 18px',
                   background: '#f0f0f0',
                   color: TEXT_SECONDARY,
                   border: 'none',
-                  borderRadius: 6,
+                  borderRadius: 9,
                   cursor: 'pointer',
                   fontWeight: 500,
                 }}
@@ -595,18 +595,18 @@ function LabelsPanel() {
             </div>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <button
               onClick={() => setAddingLabel(true)}
               style={{
                 width: '100%',
-                padding: '10px',
-                fontSize: 14,
+                padding: '15px',
+                fontSize: 21,
                 fontWeight: 500,
                 background: '#f8f8f8',
                 color: TEXT_PRIMARY,
                 border: `1px dashed ${BORDER}`,
-                borderRadius: 6,
+                borderRadius: 9,
                 cursor: 'pointer',
                 transition: 'background 0.15s, border-color 0.15s',
               }}
@@ -626,17 +626,17 @@ function LabelsPanel() {
               disabled={!currentImage || isAiProcessing}
               style={{
                 width: '100%',
-                padding: '10px',
-                fontSize: 14,
+                padding: '15px',
+                fontSize: 21,
                 fontWeight: 600,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 6,
+                gap: 9,
                 background: 'transparent',
                 color: !currentImage ? TEXT_MUTED : ACCENT,
                 border: `1.5px solid ${!currentImage ? BORDER : ACCENT}`,
-                borderRadius: 6,
+                borderRadius: 9,
                 cursor: !currentImage || isAiProcessing ? 'default' : 'pointer',
                 opacity: !currentImage ? 0.5 : 1,
                 transition: 'background 0.15s',
@@ -772,7 +772,7 @@ function LayersList() {
 
   if (annotations.length === 0 && aiResults.length === 0) {
     return (
-      <div style={{ padding: '24px 16px', color: TEXT_MUTED, fontSize: 13, textAlign: 'center' }}>
+      <div style={{ padding: '36px 24px', color: TEXT_MUTED, fontSize: 20, textAlign: 'center' }}>
         No annotations yet
       </div>
     );
@@ -783,20 +783,20 @@ function LayersList() {
       {/* AI suggestions section */}
       {aiResults.length > 0 && (
         <>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px 4px' }}>
-            <span style={{ fontSize: 12, color: TEXT_SECONDARY, fontWeight: 500 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 24px 6px' }}>
+            <span style={{ fontSize: 18, color: TEXT_SECONDARY, fontWeight: 500 }}>
               AI Suggestions ({aiResults.length})
             </span>
-            <div style={{ display: 'flex', gap: 4 }}>
+            <div style={{ display: 'flex', gap: 6 }}>
               <button
                 onClick={handleAcceptAll}
-                style={{ fontSize: 11, padding: '3px 8px', background: 'rgba(46,204,113,0.1)', border: '1px solid rgba(46,204,113,0.3)', borderRadius: 4, color: '#27ae60', cursor: 'pointer', fontWeight: 500 }}
+                style={{ fontSize: 16, padding: '5px 12px', background: 'rgba(46,204,113,0.1)', border: '1px solid rgba(46,204,113,0.3)', borderRadius: 6, color: '#27ae60', cursor: 'pointer', fontWeight: 500 }}
               >
                 Accept All
               </button>
               <button
                 onClick={handleRejectAll}
-                style={{ fontSize: 11, padding: '3px 8px', background: 'rgba(231,76,60,0.06)', border: '1px solid rgba(231,76,60,0.2)', borderRadius: 4, color: '#e74c3c', cursor: 'pointer', fontWeight: 500 }}
+                style={{ fontSize: 16, padding: '5px 12px', background: 'rgba(231,76,60,0.06)', border: '1px solid rgba(231,76,60,0.2)', borderRadius: 6, color: '#e74c3c', cursor: 'pointer', fontWeight: 500 }}
               >
                 Reject All
               </button>
@@ -808,36 +808,36 @@ function LayersList() {
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 8,
-                padding: '7px 16px',
+                gap: 12,
+                padding: '10px 24px',
                 background: 'rgba(108, 92, 231, 0.04)',
-                borderLeft: '3px solid rgba(108, 92, 231, 0.3)',
+                borderLeft: '4px solid rgba(108, 92, 231, 0.3)',
                 borderBottom: '1px solid #f5f5f5',
               }}
             >
-              <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#6C5CE7', flexShrink: 0, opacity: 0.6 }} />
-              <span style={{ fontSize: 13, color: TEXT_SECONDARY, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span style={{ width: 15, height: 15, borderRadius: '50%', background: '#6C5CE7', flexShrink: 0, opacity: 0.6 }} />
+              <span style={{ fontSize: 20, color: TEXT_SECONDARY, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {result.label || 'unlabeled'}
               </span>
-              <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 3, background: ACCENT_BG, color: ACCENT, fontWeight: 600, flexShrink: 0 }}>AI</span>
+              <span style={{ fontSize: 15, padding: '3px 9px', borderRadius: 4, background: ACCENT_BG, color: ACCENT, fontWeight: 600, flexShrink: 0 }}>AI</span>
               <button
                 onClick={() => acceptAiResult(result, index)}
                 title="Accept"
-                style={{ background: 'transparent', border: 'none', color: '#27ae60', cursor: 'pointer', padding: '2px 3px', fontSize: 14, lineHeight: 1, flexShrink: 0 }}
+                style={{ background: 'transparent', border: 'none', color: '#27ae60', cursor: 'pointer', padding: '3px 5px', fontSize: 21, lineHeight: 1, flexShrink: 0 }}
               >
                 ✓
               </button>
               <button
                 onClick={() => rejectAiResult(index)}
                 title="Reject"
-                style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: 'pointer', padding: '2px 3px', fontSize: 14, lineHeight: 1, flexShrink: 0 }}
+                style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: 'pointer', padding: '3px 5px', fontSize: 21, lineHeight: 1, flexShrink: 0 }}
               >
                 ✕
               </button>
             </div>
           ))}
           {annotations.length > 0 && (
-            <div style={{ height: 6, borderBottom: '1px solid #eee', marginBottom: 2 }} />
+            <div style={{ height: 9, borderBottom: '1px solid #eee', marginBottom: 3 }} />
           )}
         </>
       )}
@@ -853,11 +853,11 @@ function LayersList() {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 12,
-              padding: '8px 16px',
+              gap: 18,
+              padding: '12px 24px',
               cursor: 'pointer',
               background: isSelected ? ACCENT_BG : 'transparent',
-              borderLeft: isSelected ? `3px solid ${ACCENT}` : '3px solid transparent',
+              borderLeft: isSelected ? `4px solid ${ACCENT}` : '4px solid transparent',
               transition: 'background 0.1s',
               position: 'relative',
             }}
@@ -870,8 +870,8 @@ function LayersList() {
           >
             <span
               style={{
-                width: 10,
-                height: 10,
+                width: 15,
+                height: 15,
                 borderRadius: '50%',
                 background: getLabelColor(ann.label),
                 flexShrink: 0,
@@ -885,7 +885,7 @@ function LayersList() {
               }}
               title="Click to reassign class"
               style={{
-                fontSize: 14,
+                fontSize: 21,
                 color: isSelected ? ACCENT : TEXT_PRIMARY,
                 fontWeight: isSelected ? 600 : 400,
                 flex: 1,
@@ -893,9 +893,9 @@ function LayersList() {
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
                 cursor: 'pointer',
-                borderRadius: 4,
-                padding: '1px 4px',
-                margin: '-1px -4px',
+                borderRadius: 6,
+                padding: '2px 6px',
+                margin: '-2px -6px',
                 transition: 'background 0.1s',
                 background: isEditing ? '#f0f0f0' : 'transparent',
               }}
@@ -903,7 +903,7 @@ function LayersList() {
               onMouseLeave={(e) => { if (!isEditing) e.currentTarget.style.background = 'transparent'; }}
             >
               {ann.label || 'unlabeled'}
-              <span style={{ fontSize: 9, marginLeft: 3, color: TEXT_MUTED, verticalAlign: 'middle' }}>▾</span>
+              <span style={{ fontSize: 14, marginLeft: 4, color: TEXT_MUTED, verticalAlign: 'middle' }}>▾</span>
             </span>
 
             {/* Class picker dropdown */}
@@ -912,17 +912,17 @@ function LayersList() {
                 ref={dropdownRef}
                 style={{
                   position: 'absolute',
-                  left: 28,
+                  left: 42,
                   top: '100%',
                   zIndex: 50,
                   background: '#fff',
                   border: '1px solid #e5e5e5',
-                  borderRadius: 6,
-                  boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
-                  minWidth: 160,
-                  maxHeight: 200,
+                  borderRadius: 9,
+                  boxShadow: '0 6px 24px rgba(0,0,0,0.12)',
+                  minWidth: 240,
+                  maxHeight: 300,
                   overflowY: 'auto',
-                  padding: '4px 0',
+                  padding: '6px 0',
                 }}
               >
                 {labelClasses.map((lc) => (
@@ -935,10 +935,10 @@ function LayersList() {
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 8,
-                      padding: '7px 12px',
+                      gap: 12,
+                      padding: '10px 18px',
                       cursor: 'pointer',
-                      fontSize: 13,
+                      fontSize: 20,
                       color: ann.label === lc.name ? ACCENT : TEXT_PRIMARY,
                       fontWeight: ann.label === lc.name ? 600 : 400,
                       background: ann.label === lc.name ? ACCENT_BG : 'transparent',
@@ -951,12 +951,12 @@ function LayersList() {
                       if (ann.label !== lc.name) e.currentTarget.style.background = 'transparent';
                     }}
                   >
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: lc.color || '#888', flexShrink: 0 }} />
+                    <span style={{ width: 12, height: 12, borderRadius: '50%', background: lc.color || '#888', flexShrink: 0 }} />
                     {lc.name}
                   </div>
                 ))}
                 {labelClasses.length === 0 && (
-                  <div style={{ padding: '8px 12px', fontSize: 12, color: TEXT_MUTED }}>
+                  <div style={{ padding: '12px 18px', fontSize: 18, color: TEXT_MUTED }}>
                     No classes defined
                   </div>
                 )}
@@ -974,10 +974,10 @@ function LayersList() {
                 border: 'none',
                 color: TEXT_MUTED,
                 cursor: 'pointer',
-                padding: 2,
+                padding: 3,
                 display: 'flex',
                 alignItems: 'center',
-                borderRadius: 4,
+                borderRadius: 6,
                 transition: 'color 0.1s, background 0.1s',
               }}
               onMouseEnter={(e) => {
@@ -1006,28 +1006,28 @@ function LayersPanel() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ padding: '16px 16px 12px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 17, fontWeight: 700, color: TEXT_PRIMARY }}>Layers</span>
+      <div style={{ padding: '24px 24px 18px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <span style={{ fontSize: 26, fontWeight: 700, color: TEXT_PRIMARY }}>Layers</span>
           <span
             style={{
-              fontSize: 13,
+              fontSize: 20,
               fontWeight: 600,
               color: ACCENT,
               background: ACCENT_BG,
-              padding: '3px 10px',
-              borderRadius: 10,
+              padding: '4px 14px',
+              borderRadius: 14,
             }}
           >
             {annotations.length + aiResults.length}
           </span>
         </div>
-        <div style={{ fontSize: 14, color: TEXT_SECONDARY, marginTop: 4 }}>
+        <div style={{ fontSize: 21, color: TEXT_SECONDARY, marginTop: 6 }}>
           Individual annotations for current image
         </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '4px 0' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '6px 0' }}>
         <LayersList />
       </div>
     </div>
@@ -1072,17 +1072,17 @@ function ImagesPanel() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ padding: '16px 16px 12px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 17, fontWeight: 700, color: TEXT_PRIMARY }}>Images</span>
+      <div style={{ padding: '24px 24px 18px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <span style={{ fontSize: 26, fontWeight: 700, color: TEXT_PRIMARY }}>Images</span>
           <span
             style={{
-              fontSize: 13,
+              fontSize: 20,
               fontWeight: 600,
               color: ACCENT,
               background: ACCENT_BG,
-              padding: '3px 10px',
-              borderRadius: 10,
+              padding: '4px 14px',
+              borderRadius: 14,
             }}
           >
             {images.length}
@@ -1090,7 +1090,7 @@ function ImagesPanel() {
         </div>
       </div>
 
-      <div style={{ padding: '0 16px 10px' }}>
+      <div style={{ padding: '0 24px 15px' }}>
         <input
           ref={fileInputRef}
           type="file"
@@ -1103,13 +1103,13 @@ function ImagesPanel() {
           onClick={() => fileInputRef.current?.click()}
           style={{
             width: '100%',
-            padding: '10px',
+            padding: '15px',
             background: 'transparent',
             border: `1.5px dashed ${ACCENT}`,
-            borderRadius: 8,
+            borderRadius: 12,
             color: ACCENT,
             cursor: 'pointer',
-            fontSize: 14,
+            fontSize: 21,
             fontWeight: 500,
             transition: 'background 0.15s',
           }}
@@ -1122,7 +1122,7 @@ function ImagesPanel() {
 
       <div style={{ flex: 1, overflowY: 'auto' }}>
         {images.length === 0 && (
-          <div style={{ padding: '24px 16px', color: TEXT_MUTED, fontSize: 13, textAlign: 'center' }}>
+          <div style={{ padding: '36px 24px', color: TEXT_MUTED, fontSize: 20, textAlign: 'center' }}>
             No images uploaded yet
           </div>
         )}
@@ -1136,11 +1136,11 @@ function ImagesPanel() {
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 10,
-                padding: '6px 16px',
+                gap: 15,
+                padding: '9px 24px',
                 cursor: 'pointer',
                 background: isCurrent ? ACCENT_BG : 'transparent',
-                borderLeft: isCurrent ? `3px solid ${ACCENT}` : '3px solid transparent',
+                borderLeft: isCurrent ? `4px solid ${ACCENT}` : '4px solid transparent',
                 transition: 'background 0.1s',
               }}
               onMouseEnter={(e) => {
@@ -1152,9 +1152,9 @@ function ImagesPanel() {
             >
               <div
                 style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 6,
+                  width: 66,
+                  height: 66,
+                  borderRadius: 9,
                   background: '#f0f0f0',
                   overflow: 'hidden',
                   flexShrink: 0,
@@ -1173,7 +1173,7 @@ function ImagesPanel() {
               <div style={{ flex: 1, overflow: 'hidden' }}>
                 <div
                   style={{
-                    fontSize: 14,
+                    fontSize: 21,
                     color: isCurrent ? ACCENT : TEXT_PRIMARY,
                     fontWeight: isCurrent ? 600 : 400,
                     overflow: 'hidden',
@@ -1184,7 +1184,7 @@ function ImagesPanel() {
                   {img.filename || `Image ${img.id}`}
                 </div>
                 {img.annotation_count != null && (
-                  <div style={{ fontSize: 12, color: TEXT_SECONDARY }}>
+                  <div style={{ fontSize: 18, color: TEXT_SECONDARY }}>
                     {img.annotation_count} annotation{img.annotation_count !== 1 ? 's' : ''}
                   </div>
                 )}
@@ -1192,11 +1192,11 @@ function ImagesPanel() {
               {img.annotation_count != null && img.annotation_count > 0 && (
                 <span
                   style={{
-                    fontSize: 11,
+                    fontSize: 16,
                     background: ACCENT_BG,
                     color: ACCENT,
-                    padding: '2px 8px',
-                    borderRadius: 10,
+                    padding: '3px 12px',
+                    borderRadius: 14,
                     fontWeight: 600,
                   }}
                 >
@@ -1276,26 +1276,26 @@ function ReviewTabPanel() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ padding: '16px 16px 12px' }}>
-        <span style={{ fontSize: 17, fontWeight: 700, color: TEXT_PRIMARY }}>AI Review</span>
-        <div style={{ fontSize: 14, color: TEXT_SECONDARY, marginTop: 4 }}>
+      <div style={{ padding: '24px 24px 18px' }}>
+        <span style={{ fontSize: 26, fontWeight: 700, color: TEXT_PRIMARY }}>AI Review</span>
+        <div style={{ fontSize: 21, color: TEXT_SECONDARY, marginTop: 6 }}>
           Check annotation quality with AI
         </div>
       </div>
 
-      <div style={{ padding: '0 16px 10px' }}>
+      <div style={{ padding: '0 24px 15px' }}>
         <button
           onClick={handleRunReview}
           disabled={loading || !currentImage}
           style={{
             width: '100%',
-            padding: '10px',
-            fontSize: 14,
+            padding: '15px',
+            fontSize: 21,
             fontWeight: 600,
             background: loading ? '#f0f0f0' : ACCENT,
             color: loading ? TEXT_SECONDARY : '#fff',
             border: 'none',
-            borderRadius: 6,
+            borderRadius: 9,
             cursor: loading || !currentImage ? 'default' : 'pointer',
             opacity: !currentImage ? 0.5 : 1,
             transition: 'background 0.15s',
@@ -1305,17 +1305,17 @@ function ReviewTabPanel() {
         </button>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '0 0 8px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '0 0 12px' }}>
         {error && (
           <div
             style={{
-              margin: '0 16px 8px',
-              padding: '10px 12px',
+              margin: '0 24px 12px',
+              padding: '15px 18px',
               background: 'rgba(231,76,60,0.06)',
               border: '1px solid rgba(231,76,60,0.2)',
-              borderRadius: 6,
+              borderRadius: 9,
               color: '#e74c3c',
-              fontSize: 13,
+              fontSize: 20,
             }}
           >
             {error}
@@ -1323,13 +1323,13 @@ function ReviewTabPanel() {
         )}
 
         {!currentImage && (
-          <div style={{ textAlign: 'center', color: TEXT_MUTED, padding: '32px 16px', fontSize: 13 }}>
+          <div style={{ textAlign: 'center', color: TEXT_MUTED, padding: '48px 24px', fontSize: 20 }}>
             Select an image to run quality review
           </div>
         )}
 
         {currentImage && sortedIssues.length === 0 && !loading && (
-          <div style={{ textAlign: 'center', color: TEXT_MUTED, padding: '32px 16px', fontSize: 13 }}>
+          <div style={{ textAlign: 'center', color: TEXT_MUTED, padding: '48px 24px', fontSize: 20 }}>
             {reviewIssues.length === 0
               ? 'Click "Run Quality Review" to check annotations'
               : 'All issues resolved'}
@@ -1337,7 +1337,7 @@ function ReviewTabPanel() {
         )}
 
         {loading && sortedIssues.length === 0 && (
-          <div style={{ textAlign: 'center', color: TEXT_SECONDARY, padding: '32px 16px', fontSize: 13 }}>
+          <div style={{ textAlign: 'center', color: TEXT_SECONDARY, padding: '48px 24px', fontSize: 20 }}>
             Analyzing annotations...
           </div>
         )}
@@ -1349,33 +1349,33 @@ function ReviewTabPanel() {
             <div
               key={idx}
               style={{
-                margin: '0 12px 6px',
-                padding: '10px 12px',
+                margin: '0 18px 9px',
+                padding: '15px 18px',
                 background: '#fafafa',
-                borderRadius: 8,
-                borderLeft: `3px solid ${color}`,
+                borderRadius: 12,
+                borderLeft: `4px solid ${color}`,
               }}
             >
-              <div style={{ fontSize: 13, color: TEXT_PRIMARY, marginBottom: 4, lineHeight: 1.4 }}>
+              <div style={{ fontSize: 20, color: TEXT_PRIMARY, marginBottom: 6, lineHeight: 1.4 }}>
                 {issue.message}
               </div>
               {issue.suggestion && (
-                <div style={{ fontSize: 12, color: TEXT_SECONDARY, marginBottom: 8 }}>
+                <div style={{ fontSize: 18, color: TEXT_SECONDARY, marginBottom: 12 }}>
                   {issue.suggestion}
                 </div>
               )}
-              <div style={{ display: 'flex', gap: 6 }}>
+              <div style={{ display: 'flex', gap: 9 }}>
                 {issue.fix && (
                   <button
                     onClick={() => handleAcceptFix(issue, idx)}
                     style={{
-                      padding: '5px 10px',
+                      padding: '8px 15px',
                       background: 'rgba(46,204,113,0.08)',
                       border: '1px solid rgba(46,204,113,0.3)',
-                      borderRadius: 4,
+                      borderRadius: 6,
                       color: '#27ae60',
                       cursor: 'pointer',
-                      fontSize: 12,
+                      fontSize: 18,
                       fontWeight: 500,
                     }}
                   >
@@ -1385,13 +1385,13 @@ function ReviewTabPanel() {
                 <button
                   onClick={() => handleDismiss(idx)}
                   style={{
-                    padding: '5px 10px',
+                    padding: '8px 15px',
                     background: '#f0f0f0',
                     border: '1px solid #e5e5e5',
-                    borderRadius: 4,
+                    borderRadius: 6,
                     color: TEXT_SECONDARY,
                     cursor: 'pointer',
-                    fontSize: 12,
+                    fontSize: 18,
                     fontWeight: 500,
                   }}
                 >
@@ -1401,13 +1401,13 @@ function ReviewTabPanel() {
                   <button
                     onClick={() => handleView(issue)}
                     style={{
-                      padding: '5px 10px',
+                      padding: '8px 15px',
                       background: ACCENT_BG,
                       border: `1px solid rgba(108,92,231,0.3)`,
-                      borderRadius: 4,
+                      borderRadius: 6,
                       color: ACCENT,
                       cursor: 'pointer',
-                      fontSize: 12,
+                      fontSize: 18,
                       fontWeight: 500,
                     }}
                   >
@@ -1441,15 +1441,16 @@ export default function Sidebar() {
       {/* Part A: Icon Tab Bar */}
       <div
         style={{
-          width: 72,
+          width: 108,
           background: '#fff',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          paddingTop: 10,
-          gap: 4,
+          paddingTop: 15,
+          gap: 6,
           flexShrink: 0,
           userSelect: 'none',
+          borderRight: `1px solid ${BORDER}`,
         }}
       >
         {tabs.map((tab) => {
@@ -1459,17 +1460,17 @@ export default function Sidebar() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               style={{
-                width: 68,
+                width: 102,
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 5,
-                padding: '10px 0 8px',
+                gap: 8,
+                padding: '15px 0 12px',
                 background: 'transparent',
                 color: isActive ? ACCENT : '#999',
                 border: 'none',
-                borderLeft: isActive ? `3px solid ${ACCENT}` : '3px solid transparent',
+                borderLeft: isActive ? `4px solid ${ACCENT}` : '4px solid transparent',
                 borderRadius: 0,
                 cursor: 'pointer',
                 transition: 'color 0.15s',
@@ -1483,19 +1484,19 @@ export default function Sidebar() {
             >
               <div
                 style={{
-                  width: 40,
-                  height: 40,
+                  width: 60,
+                  height: 60,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  borderRadius: 10,
+                  borderRadius: 15,
                   background: isActive ? 'rgba(108, 92, 231, 0.08)' : 'transparent',
                   transition: 'background 0.15s',
                 }}
               >
                 <tab.Icon />
               </div>
-              <span style={{ fontSize: 12, fontWeight: isActive ? 600 : 400, lineHeight: 1 }}>
+              <span style={{ fontSize: 18, fontWeight: isActive ? 600 : 400, lineHeight: 1 }}>
                 {tab.label}
               </span>
             </button>
@@ -1506,7 +1507,7 @@ export default function Sidebar() {
       {/* Part B: Content Panel */}
       <div
         style={{
-          width: 260,
+          width: 390,
           background: '#fff',
           display: 'flex',
           flexDirection: 'column',
