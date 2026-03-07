@@ -1,0 +1,1704 @@
+=== FILE: server/routes/annotations.js ===
+
+
+import { Router } from 'express';
+import { v4 as uuidv4 } from 'uuid';
+import db from '../db.js';
+import { broadcastToImage } from '../websocket.js';
+
+const router = Router();
+
+// GET /api/annotations/image/:imageId — get all annotations for an image
+router.get('/image/:imageId', (req, res) => {
+  const annotations = db.prepare(
+    'SELECT * FROM annotations WHERE image_id = ? ORDER BY created_at DESC'
+  ).all(req.params.imageId);
+  res.json(annotations);
+});
+
+// POST /api/annotations — create annotation
+router.post('/', (req, res) => {
+  const { image_id, project_id, label, type, data, confidence, source } = req.body;
+  if (!image_id || !project_id || !type || !data) {
+    return res.status(400).json({ error: 'image_id, project_id, type, and data are required' });
+  }
+
+  const id = uuidv4();
+  const now = new Date().toISOString();
+  const dataStr = typeof data === 'string' ? data : JSON.stringify(data);
+
+  db.prepare(`
+    INSERT INTO annotations (id, image_id, project_id, label, type, data, confidence, source, created_by, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(id, image_id, project_id, label || null, type, dataStr, confidence ?? null, source || 'manual', req.user || 'local-user', now, now);
+
+  const annotation = db.prepare('SELECT * FROM annotations WHERE id = ?').get(id);
+
+  broadcastToImage(image_id, {
+    type: 'annotation-created',
+    annotation,
+  });
+
+  res.status(201).json(annotation);
+});
+
+// PUT /api/annotations/:id — update annotation
+router.put('/:id', (req, res) => {
+  const existing = db.prepare('SELECT * FROM annotations WHERE id = ?').get(req.params.id);
+  if (!existing) {
+    return res.status(404).json({ error: 'Annotation not found' });
+  }
+
+  const { label, type, data, confidence } = req.body;
+  const now = new Date().toISOString();
+  const dataStr = data ? (typeof data === 'string' ? data : JSON.stringify(data)) : existing.data;
+
+  db.prepare(`
+    UPDATE annotations SET label = ?, type = ?, data = ?, confidence = ?, updated_at = ? WHERE id = ?
+  `).run(
+    label ?? existing.label,
+    type || existing.type,
+    dataStr,
+    confidence ?? existing.confidence,
+    now,
+    req.params.id
+  );
+
+  const annotation = db.prepare('SELECT * FROM annotations WHERE id = ?').get(req.params.id);
+
+  broadcastToImage(existing.image_id, {
+    type: 'annotation-updated',
+    annotation,
+  });
+
+  res.json(annotation);
+});
+
+// DELETE /api/annotations/:id — delete annotation
+router.delete('/:id', (req, res) => {
+  const existing = db.prepare('SELECT * FROM annotations WHERE id = ?').get(req.params.id);
+  if (!existing) {
+    return res.status(404).json({ error: 'Annotation not found' });
+  }
+
+  db.prepare('DELETE FROM annotations WHERE id = ?').run(req.params.id);
+
+  broadcastToImage(existing.image_id, {
+    type: 'annotation-deleted',
+    annotationId: req.params.id,
+  });
+
+  res.json({ success: true });
+});
+
+// POST /api/annotations/batch — create multiple annotations at once
+router.post('/batch', (req, res) => {
+  const { annotations } = req.body;
+  if (!Array.isArray(annotations) || annotations.length === 0) {
+    return res.status(400).json({ error: 'annotations array is required' });
+  }
+
+  const now = new Date().toISOString();
+  const insertStmt = db.prepare(`
+    INSERT INTO annotations (id, image_id, project_id, label, type, data, confidence, source, created_by, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  const created = [];
+  const insertAll = db.transaction((items) => {
+    for (const ann of items) {
+      const id = uuidv4();
+      const dataStr = typeof ann.data === 'string' ? ann.data : JSON.stringify(ann.data);
+      insertStmt.run(
+        id,
+        ann.image_id,
+        ann.project_id,
+        ann.label || null,
+        ann.type,
+        dataStr,
+        ann.confidence ?? null,
+        ann.source || 'manual',
+        req.user || 'local-user',
+        now,
+        now
+      );
+      created.push(db.prepare('SELECT * FROM annotations WHERE id = ?').get(id));
+    }
+  });
+
+  insertAll(annotations);
+
+  // Broadcast to relevant images
+  const imageIds = [...new Set(annotations.map((a) => a.image_id))];
+  for (const imageId of imageIds) {
+    const imageAnnotations = created.filter((a) => a.image_id === imageId);
+    broadcastToImage(imageId, {
+      type: 'annotation-created',
+      annotations: imageAnnotations,
+      batch: true,
+    });
+  }
+
+  res.status(201).json(created);
+});
+
+// GET /api/annotations/project/:projectId — get all annotations for a project
+router.get('/project/:projectId', (req, res) => {
+  const annotations = db.prepare(
+    'SELECT * FROM annotations WHERE project_id = ? ORDER BY created_at DESC'
+  ).all(req.params.projectId);
+  res.json(annotations);
+});
+
+export default router;
+
+
+=== FILE: server/routes/labels.js ===
+
+
+import { Router } from 'express';
+import { v4 as uuidv4 } from 'uuid';
+import db from '../db.js';
+
+const router = Router({ mergeParams: true });
+
+// Predefined palette for auto-generating colors
+const COLOR_PALETTE = [
+  '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
+  '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9',
+  '#F0B27A', '#82E0AA', '#F1948A', '#85929E', '#73C6B6',
+  '#E59866', '#A9CCE3', '#D2B4DE', '#A3E4D7', '#FAD7A0',
+];
+
+// GET /api/projects/:projectId/labels — list label classes
+router.get('/', (req, res) => {
+  const labels = db.prepare(
+    'SELECT * FROM label_classes WHERE project_id = ? ORDER BY created_at ASC'
+  ).all(req.params.projectId);
+  res.json(labels);
+});
+
+// POST /api/projects/:projectId/labels — create label class
+router.post('/', (req, res) => {
+  const { name, color } = req.body;
+  if (!name) {
+    return res.status(400).json({ error: 'Label name is required' });
+  }
+
+  // Auto-generate color if not provided
+  let labelColor = color;
+  if (!labelColor) {
+    const existingCount = db.prepare(
+      'SELECT COUNT(*) AS cnt FROM label_classes WHERE project_id = ?'
+    ).get(req.params.projectId).cnt;
+    labelColor = COLOR_PALETTE[existingCount % COLOR_PALETTE.length];
+  }
+
+  const id = uuidv4();
+  const now = new Date().toISOString();
+
+  db.prepare(`
+    INSERT INTO label_classes (id, project_id, name, color, created_at)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(id, req.params.projectId, name, labelColor, now);
+
+  const label = db.prepare('SELECT * FROM label_classes WHERE id = ?').get(id);
+  res.status(201).json(label);
+});
+
+// PUT /api/projects/:projectId/labels/:id — update label class
+router.put('/:id', (req, res) => {
+  const existing = db.prepare(
+    'SELECT * FROM label_classes WHERE id = ? AND project_id = ?'
+  ).get(req.params.id, req.params.projectId);
+  if (!existing) {
+    return res.status(404).json({ error: 'Label class not found' });
+  }
+
+  const { name, color } = req.body;
+  db.prepare('UPDATE label_classes SET name = ?, color = ? WHERE id = ?')
+    .run(name || existing.name, color || existing.color, req.params.id);
+
+  const label = db.prepare('SELECT * FROM label_classes WHERE id = ?').get(req.params.id);
+  res.json(label);
+});
+
+// DELETE /api/projects/:projectId/labels/:id — delete label class
+router.delete('/:id', (req, res) => {
+  const existing = db.prepare(
+    'SELECT * FROM label_classes WHERE id = ? AND project_id = ?'
+  ).get(req.params.id, req.params.projectId);
+  if (!existing) {
+    return res.status(404).json({ error: 'Label class not found' });
+  }
+
+  db.prepare('DELETE FROM label_classes WHERE id = ?').run(req.params.id);
+  res.json({ success: true });
+});
+
+export default router;
+
+
+=== FILE: server/routes/reviews.js ===
+
+
+import { Router } from 'express';
+import db from '../db.js';
+
+const router = Router();
+
+// GET /api/reviews/project/:projectId — list all review issues for project
+router.get('/project/:projectId', (req, res) => {
+  const severityOrder = `
+    CASE severity
+      WHEN 'error' THEN 1
+      WHEN 'warning' THEN 2
+      WHEN 'info' THEN 3
+    END
+  `;
+  const issues = db.prepare(`
+    SELECT * FROM review_issues
+    WHERE project_id = ?
+    ORDER BY ${severityOrder}, created_at DESC
+  `).all(req.params.projectId);
+  res.json(issues);
+});
+
+// PUT /api/reviews/:id — update issue status
+router.put('/:id', (req, res) => {
+  const existing = db.prepare('SELECT * FROM review_issues WHERE id = ?').get(req.params.id);
+  if (!existing) {
+    return res.status(404).json({ error: 'Review issue not found' });
+  }
+
+  const { status } = req.body;
+  if (!status || !['open', 'accepted', 'dismissed'].includes(status)) {
+    return res.status(400).json({ error: 'Valid status is required: open, accepted, dismissed' });
+  }
+
+  db.prepare('UPDATE review_issues SET status = ? WHERE id = ?')
+    .run(status, req.params.id);
+
+  const issue = db.prepare('SELECT * FROM review_issues WHERE id = ?').get(req.params.id);
+  res.json(issue);
+});
+
+// DELETE /api/reviews/:id — delete issue
+router.delete('/:id', (req, res) => {
+  const existing = db.prepare('SELECT * FROM review_issues WHERE id = ?').get(req.params.id);
+  if (!existing) {
+    return res.status(404).json({ error: 'Review issue not found' });
+  }
+
+  db.prepare('DELETE FROM review_issues WHERE id = ?').run(req.params.id);
+  res.json({ success: true });
+});
+
+// GET /api/reviews/stats/:projectId — issue counts by status
+router.get('/stats/:projectId', (req, res) => {
+  const stats = db.prepare(`
+    SELECT
+      SUM(CASE WHEN status = 'open' THEN 1 ELSE 0 END) AS open,
+      SUM(CASE WHEN status = 'accepted' THEN 1 ELSE 0 END) AS accepted,
+      SUM(CASE WHEN status = 'dismissed' THEN 1 ELSE 0 END) AS dismissed,
+      COUNT(*) AS total
+    FROM review_issues
+    WHERE project_id = ?
+  `).get(req.params.projectId);
+
+  res.json({
+    open: stats.open || 0,
+    accepted: stats.accepted || 0,
+    dismissed: stats.dismissed || 0,
+    total: stats.total || 0,
+  });
+});
+
+export default router;
+
+
+=== FILE: server/routes/ai.js ===
+
+
+import { Router } from 'express';
+import { v4 as uuidv4 } from 'uuid';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import db from '../db.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const uploadsBase = path.join(__dirname, '..', '..', 'uploads');
+
+const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://127.0.0.1:8000';
+
+const router = Router();
+
+/**
+ * Helper: look up an image by ID, return its file path and metadata.
+ */
+function getImageFile(imageId) {
+  const image = db.prepare('SELECT * FROM images WHERE id = ?').get(imageId);
+  if (!image) return null;
+  const filePath = path.join(uploadsBase, image.project_id, image.filename);
+  if (!fs.existsSync(filePath)) return null;
+  return { image, filePath };
+}
+
+/**
+ * Helper: proxy a JSON request body to the AI service.
+ */
+async function proxyJson(endpoint, body) {
+  const resp = await fetch(`${AI_SERVICE_URL}${endpoint}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!resp.ok) {
+    const text = await resp.text();
+    throw new Error(`AI service error (${resp.status}): ${text}`);
+  }
+  return resp.json();
+}
+
+/**
+ * Helper: proxy a request with an image file as multipart form data.
+ * Reads the image from disk by image_id and forwards it along with other fields.
+ */
+async function proxyWithImage(endpoint, imageId, extraFields = {}) {
+  const imageFile = getImageFile(imageId);
+  if (!imageFile) {
+    throw new Error('Image not found');
+  }
+
+  const { Blob } = await import('buffer');
+  const fileBuffer = fs.readFileSync(imageFile.filePath);
+  const ext = path.extname(imageFile.image.filename).toLowerCase();
+  const mimeTypes = {
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.png': 'image/png',
+    '.gif': 'image/gif',
+    '.webp': 'image/webp',
+    '.bmp': 'image/bmp',
+  };
+  const mimeType = mimeTypes[ext] || 'application/octet-stream';
+
+  const formData = new FormData();
+  const blob = new Blob([fileBuffer], { type: mimeType });
+  formData.append('image', blob, imageFile.image.filename);
+
+  for (const [key, value] of Object.entries(extraFields)) {
+    if (value !== undefined && value !== null) {
+      formData.append(key, typeof value === 'object' ? JSON.stringify(value) : String(value));
+    }
+  }
+
+  const resp = await fetch(`${AI_SERVICE_URL}${endpoint}`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!resp.ok) {
+    const text = await resp.text();
+    throw new Error(`AI service error (${resp.status}): ${text}`);
+  }
+  return resp.json();
+}
+
+// POST /api/ai/segment/click
+router.post('/segment/click', async (req, res, next) => {
+  try {
+    const { image_id, points, labels } = req.body;
+    const result = await proxyWithImage('/segment/click', image_id, { points, labels });
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/ai/segment/box
+router.post('/segment/box', async (req, res, next) => {
+  try {
+    const { image_id, box } = req.body;
+    const result = await proxyWithImage('/segment/box', image_id, { box });
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/ai/segment/everything
+router.post('/segment/everything', async (req, res, next) => {
+  try {
+    const { image_id, params } = req.body;
+    const result = await proxyWithImage('/segment/everything', image_id, params || {});
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/ai/segment/refine
+router.post('/segment/refine', async (req, res, next) => {
+  try {
+    const { image_id, mask_rle, positive_points, negative_points } = req.body;
+    const result = await proxyWithImage('/segment/refine', image_id, { mask_rle, positive_points, negative_points });
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/ai/clip/classify
+router.post('/clip/classify', async (req, res, next) => {
+  try {
+    const { image_id, labels: classLabels } = req.body;
+    const result = await proxyWithImage('/clip/classify', image_id, { labels: classLabels });
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/ai/clip/embed
+router.post('/clip/embed', async (req, res, next) => {
+  try {
+    const { image_id } = req.body;
+    const result = await proxyWithImage('/clip/embed', image_id);
+
+    // Save embedding to the image record
+    if (result.embedding) {
+      db.prepare('UPDATE images SET clip_embedding = ? WHERE id = ?')
+        .run(JSON.stringify(result.embedding), image_id);
+    }
+
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/ai/clip/search
+router.post('/clip/search', async (req, res, next) => {
+  try {
+    const { project_id, query } = req.body;
+
+    // Get all images with embeddings for this project
+    const images = db.prepare(
+      'SELECT id, filename, clip_embedding FROM images WHERE project_id = ? AND clip_embedding IS NOT NULL'
+    ).all(project_id);
+
+    const embeddings = images.map((img) => ({
+      image_id: img.id,
+      embedding: JSON.parse(img.clip_embedding),
+    }));
+
+    const result = await proxyJson('/clip/search', { query, embeddings });
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/ai/agent/nl-annotate — natural language annotation
+router.post('/agent/nl-annotate', async (req, res, next) => {
+  try {
+    const { image_id, project_id, prompt } = req.body;
+    const result = await proxyWithImage('/agent/nl-annotate', image_id, { prompt });
+
+    // Auto-create annotations from results
+    if (result.annotations && Array.isArray(result.annotations)) {
+      const now = new Date().toISOString();
+      const insertStmt = db.prepare(`
+        INSERT INTO annotations (id, image_id, project_id, label, type, data, confidence, source, created_by, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+
+      const insertAll = db.transaction((annotations) => {
+        for (const ann of annotations) {
+          const id = uuidv4();
+          insertStmt.run(
+            id,
+            image_id,
+            project_id,
+            ann.label || null,
+            ann.type || 'polygon',
+            typeof ann.data === 'string' ? ann.data : JSON.stringify(ann.data),
+            ann.confidence ?? null,
+            'nl-agent',
+            req.user || 'local-user',
+            now,
+            now
+          );
+        }
+      });
+
+      insertAll(result.annotations);
+    }
+
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/ai/agent/quality-review — review annotations for quality
+router.post('/agent/quality-review', async (req, res, next) => {
+  try {
+    const { image_id, project_id } = req.body;
+
+    // Get annotations for the image
+    const annotations = db.prepare(
+      'SELECT * FROM annotations WHERE image_id = ?'
+    ).all(image_id);
+
+    const result = await proxyWithImage('/agent/quality-review', image_id, { annotations });
+
+    // Save issues to review_issues table
+    if (result.issues && Array.isArray(result.issues)) {
+      const now = new Date().toISOString();
+      const insertStmt = db.prepare(`
+        INSERT INTO review_issues (id, project_id, image_id, annotation_id, type, severity, message, suggestion, status, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'open', ?)
+      `);
+
+      const insertAll = db.transaction((issues) => {
+        for (const issue of issues) {
+          insertStmt.run(
+            uuidv4(),
+            project_id,
+            image_id,
+            issue.annotation_id || null,
+            issue.type || null,
+            issue.severity || 'warning',
+            issue.message,
+            issue.suggestion || null,
+            now
+          );
+        }
+      });
+
+      insertAll(result.issues);
+    }
+
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/ai/agent/dataset-health — compute dataset health stats
+router.post('/agent/dataset-health', async (req, res, next) => {
+  try {
+    const { project_id } = req.body;
+
+    // Compute stats from DB
+    const imageCount = db.prepare(
+      'SELECT COUNT(*) AS count FROM images WHERE project_id = ?'
+    ).get(project_id).count;
+
+    const annotationCount = db.prepare(
+      'SELECT COUNT(*) AS count FROM annotations WHERE project_id = ?'
+    ).get(project_id).count;
+
+    const labelDistribution = db.prepare(`
+      SELECT label, COUNT(*) AS count
+      FROM annotations WHERE project_id = ?
+      GROUP BY label
+    `).all(project_id);
+
+    const sourceDistribution = db.prepare(`
+      SELECT source, COUNT(*) AS count
+      FROM annotations WHERE project_id = ?
+      GROUP BY source
+    `).all(project_id);
+
+    const unannotatedImages = db.prepare(`
+      SELECT COUNT(*) AS count FROM images
+      WHERE project_id = ? AND id NOT IN (SELECT DISTINCT image_id FROM annotations WHERE project_id = ?)
+    `).get(project_id, project_id).count;
+
+    const openIssues = db.prepare(
+      "SELECT COUNT(*) AS count FROM review_issues WHERE project_id = ? AND status = 'open'"
+    ).get(project_id).count;
+
+    const dbStats = {
+      image_count: imageCount,
+      annotation_count: annotationCount,
+      label_distribution: labelDistribution,
+      source_distribution: sourceDistribution,
+      unannotated_images: unannotatedImages,
+      open_issues: openIssues,
+      avg_annotations_per_image: imageCount > 0 ? +(annotationCount / imageCount).toFixed(2) : 0,
+    };
+
+    // Try to get CLIP-based diversity stats from AI service
+    try {
+      const images = db.prepare(
+        'SELECT id, clip_embedding FROM images WHERE project_id = ? AND clip_embedding IS NOT NULL'
+      ).all(project_id);
+
+      if (images.length > 0) {
+        const embeddings = images.map((img) => ({
+          image_id: img.id,
+          embedding: JSON.parse(img.clip_embedding),
+        }));
+        const clipStats = await proxyJson('/agent/dataset-health', { embeddings });
+        Object.assign(dbStats, { clip_analysis: clipStats });
+      }
+    } catch {
+      // AI service may not be available, that's OK
+    }
+
+    res.json(dbStats);
+  } catch (err) {
+    next(err);
+  }
+});
+
+export default router;
+
+
+=== FILE: server/routes/images.js ===
+
+
+import { Router } from 'express';
+import { v4 as uuidv4 } from 'uuid';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+import db from '../db.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const uploadsBase = path.join(__dirname, '..', '..', 'uploads');
+
+// Configure multer storage
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const projectDir = path.join(uploadsBase, req.params.projectId);
+    fs.mkdirSync(projectDir, { recursive: true });
+    cb(null, projectDir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    const name = uuidv4() + ext;
+    cb(null, name);
+  },
+});
+
+const upload = multer({
+  storage,
+  fileFilter: (req, file, cb) => {
+    const allowed = /\.(jpg|jpeg|png|gif|bmp|webp|tiff?)$/i;
+    if (allowed.test(path.extname(file.originalname))) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'));
+    }
+  },
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
+});
+
+/**
+ * Try to read image dimensions from file header bytes.
+ * Supports PNG and JPEG. Returns { width, height } or { width: 0, height: 0 }.
+ */
+function getImageDimensions(filePath) {
+  try {
+    const fd = fs.openSync(filePath, 'r');
+    const header = Buffer.alloc(32);
+    fs.readSync(fd, header, 0, 32, 0);
+
+    // PNG: bytes 16-23 contain width and height as 4-byte big-endian
+    if (header[0] === 0x89 && header[1] === 0x50 && header[2] === 0x4E && header[3] === 0x47) {
+      const width = header.readUInt32BE(16);
+      const height = header.readUInt32BE(20);
+      fs.closeSync(fd);
+      return { width, height };
+    }
+
+    // JPEG: need to scan for SOF markers
+    if (header[0] === 0xFF && header[1] === 0xD8) {
+      const buf = Buffer.alloc(64 * 1024);
+      fs.readSync(fd, buf, 0, buf.length, 0);
+      fs.closeSync(fd);
+
+      let offset = 2;
+      while (offset < buf.length - 9) {
+        if (buf[offset] !== 0xFF) break;
+        const marker = buf[offset + 1];
+        // SOF markers: C0-C3, C5-C7, C9-CB, CD-CF
+        if (
+          (marker >= 0xC0 && marker <= 0xC3) ||
+          (marker >= 0xC5 && marker <= 0xC7) ||
+          (marker >= 0xC9 && marker <= 0xCB) ||
+          (marker >= 0xCD && marker <= 0xCF)
+        ) {
+          const height = buf.readUInt16BE(offset + 5);
+          const width = buf.readUInt16BE(offset + 7);
+          return { width, height };
+        }
+        const segLen = buf.readUInt16BE(offset + 2);
+        offset += 2 + segLen;
+      }
+      return { width: 0, height: 0 };
+    }
+
+    fs.closeSync(fd);
+  } catch {
+    // Fall through
+  }
+  return { width: 0, height: 0 };
+}
+
+const router = Router({ mergeParams: true });
+
+// GET /api/projects/:projectId/images — list images for a project
+router.get('/', (req, res) => {
+  const images = db.prepare(`
+    SELECT i.*,
+      (SELECT COUNT(*) FROM annotations WHERE image_id = i.id) AS annotation_count
+    FROM images i
+    WHERE i.project_id = ?
+    ORDER BY i.created_at DESC
+  `).all(req.params.projectId);
+  res.json(images);
+});
+
+// POST /api/projects/:projectId/images/upload — upload image(s)
+router.post('/upload', upload.array('images', 50), (req, res) => {
+  if (!req.files || req.files.length === 0) {
+    return res.status(400).json({ error: 'No files uploaded' });
+  }
+
+  const now = new Date().toISOString();
+  const insertStmt = db.prepare(`
+    INSERT INTO images (id, project_id, filename, original_name, width, height, uploaded_by, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  const inserted = [];
+  const insertAll = db.transaction((files) => {
+    for (const file of files) {
+      const id = uuidv4();
+      const dims = getImageDimensions(file.path);
+      insertStmt.run(
+        id,
+        req.params.projectId,
+        file.filename,
+        file.originalname,
+        dims.width,
+        dims.height,
+        req.user || 'local-user',
+        now
+      );
+      inserted.push({
+        id,
+        project_id: req.params.projectId,
+        filename: file.filename,
+        original_name: file.originalname,
+        width: dims.width,
+        height: dims.height,
+        uploaded_by: req.user || 'local-user',
+        created_at: now,
+      });
+    }
+  });
+
+  insertAll(req.files);
+  res.status(201).json(inserted);
+});
+
+// GET /api/projects/:projectId/images/:id — get single image with annotations
+router.get('/:id', (req, res) => {
+  const image = db.prepare('SELECT * FROM images WHERE id = ? AND project_id = ?')
+    .get(req.params.id, req.params.projectId);
+  if (!image) {
+    return res.status(404).json({ error: 'Image not found' });
+  }
+
+  const annotations = db.prepare(
+    'SELECT * FROM annotations WHERE image_id = ? ORDER BY created_at DESC'
+  ).all(req.params.id);
+
+  res.json({ ...image, annotations });
+});
+
+// DELETE /api/projects/:projectId/images/:id — delete image and annotations
+router.delete('/:id', (req, res) => {
+  const image = db.prepare('SELECT * FROM images WHERE id = ? AND project_id = ?')
+    .get(req.params.id, req.params.projectId);
+  if (!image) {
+    return res.status(404).json({ error: 'Image not found' });
+  }
+
+  // Delete file from disk
+  const filePath = path.join(uploadsBase, req.params.projectId, image.filename);
+  try {
+    fs.unlinkSync(filePath);
+  } catch {
+    // File may already be gone
+  }
+
+  db.prepare('DELETE FROM images WHERE id = ?').run(req.params.id);
+  res.json({ success: true });
+});
+
+export default router;
+
+
+=== FILE: server/routes/projects.js ===
+
+
+import { Router } from 'express';
+import { v4 as uuidv4 } from 'uuid';
+import db from '../db.js';
+
+const router = Router();
+
+// GET /api/projects — list all projects
+router.get('/', (req, res) => {
+  const projects = db.prepare(`
+    SELECT p.*,
+      (SELECT COUNT(*) FROM images WHERE project_id = p.id) AS image_count,
+      (SELECT COUNT(*) FROM annotations WHERE project_id = p.id) AS annotation_count,
+      (SELECT COUNT(*) FROM label_classes WHERE project_id = p.id) AS label_count,
+      (SELECT i.id FROM images i WHERE i.project_id = p.id ORDER BY i.created_at DESC LIMIT 1) AS thumbnail_image_id
+    FROM projects p
+    ORDER BY p.updated_at DESC
+  `).all();
+  res.json(projects);
+});
+
+// POST /api/projects — create project
+router.post('/', (req, res) => {
+  const { name, description } = req.body;
+  if (!name) {
+    return res.status(400).json({ error: 'Project name is required' });
+  }
+  const id = uuidv4();
+  const now = new Date().toISOString();
+  db.prepare(`
+    INSERT INTO projects (id, name, description, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(id, name, description || '', now, now);
+
+  const project = db.prepare('SELECT * FROM projects WHERE id = ?').get(id);
+  res.status(201).json(project);
+});
+
+// GET /api/projects/:id — get project with counts
+router.get('/:id', (req, res) => {
+  const project = db.prepare(`
+    SELECT p.*,
+      (SELECT COUNT(*) FROM images WHERE project_id = p.id) AS image_count,
+      (SELECT COUNT(*) FROM annotations WHERE project_id = p.id) AS annotation_count
+    FROM projects p WHERE p.id = ?
+  `).get(req.params.id);
+
+  if (!project) {
+    return res.status(404).json({ error: 'Project not found' });
+  }
+  res.json(project);
+});
+
+// PUT /api/projects/:id — update project
+router.put('/:id', (req, res) => {
+  const { name, description } = req.body;
+  const now = new Date().toISOString();
+  const existing = db.prepare('SELECT * FROM projects WHERE id = ?').get(req.params.id);
+  if (!existing) {
+    return res.status(404).json({ error: 'Project not found' });
+  }
+
+  db.prepare(`
+    UPDATE projects SET name = ?, description = ?, updated_at = ? WHERE id = ?
+  `).run(name || existing.name, description ?? existing.description, now, req.params.id);
+
+  const project = db.prepare('SELECT * FROM projects WHERE id = ?').get(req.params.id);
+  res.json(project);
+});
+
+// DELETE /api/projects/:id — delete project (cascade handled by FK)
+router.delete('/:id', (req, res) => {
+  const existing = db.prepare('SELECT * FROM projects WHERE id = ?').get(req.params.id);
+  if (!existing) {
+    return res.status(404).json({ error: 'Project not found' });
+  }
+
+  db.prepare('DELETE FROM projects WHERE id = ?').run(req.params.id);
+  res.json({ success: true });
+});
+
+export default router;
+
+
+=== FILE: server/websocket.js ===
+
+
+import { WebSocketServer } from 'ws';
+
+// Map of ws client -> { user, imageId, cursor }
+const clients = new Map();
+
+// Throttle tracking for cursor broadcasts
+const cursorTimers = new Map();
+const CURSOR_THROTTLE_MS = 50;
+
+export function setupWebSocket(server) {
+  const wss = new WebSocketServer({ server });
+
+  wss.on('connection', (ws, req) => {
+    // Extract user identity from headers or query
+    const user = req.headers['tailscale-user-login']
+      || req.headers['x-webauth-user']
+      || 'local-user';
+
+    clients.set(ws, { user, imageId: null, cursor: null });
+
+    // Send current presence to newly connected client
+    ws.send(JSON.stringify({
+      type: 'presence',
+      users: getPresenceList(),
+    }));
+
+    // Broadcast updated presence to everyone
+    broadcastAll({
+      type: 'presence',
+      users: getPresenceList(),
+    });
+
+    ws.on('message', (raw) => {
+      let msg;
+      try {
+        msg = JSON.parse(raw);
+      } catch {
+        return;
+      }
+
+      const client = clients.get(ws);
+      if (!client) return;
+
+      switch (msg.type) {
+        case 'cursor': {
+          client.cursor = { x: msg.x, y: msg.y };
+          // Throttled broadcast of cursor position
+          if (!cursorTimers.has(ws)) {
+            cursorTimers.set(ws, setTimeout(() => {
+              cursorTimers.delete(ws);
+              if (client.imageId) {
+                broadcastToImage(client.imageId, {
+                  type: 'cursor',
+                  user: client.user,
+                  x: client.cursor?.x,
+                  y: client.cursor?.y,
+                }, ws);
+              }
+            }, CURSOR_THROTTLE_MS));
+          }
+          break;
+        }
+
+        case 'subscribe-image': {
+          client.imageId = msg.imageId;
+          broadcastAll({
+            type: 'presence',
+            users: getPresenceList(),
+          });
+          break;
+        }
+      }
+    });
+
+    ws.on('close', () => {
+      const timer = cursorTimers.get(ws);
+      if (timer) clearTimeout(timer);
+      cursorTimers.delete(ws);
+      clients.delete(ws);
+
+      broadcastAll({
+        type: 'presence',
+        users: getPresenceList(),
+      });
+    });
+
+    ws.on('error', () => {
+      clients.delete(ws);
+    });
+  });
+
+  return wss;
+}
+
+function getPresenceList() {
+  const users = [];
+  for (const [, info] of clients) {
+    users.push({
+      user: info.user,
+      imageId: info.imageId,
+    });
+  }
+  return users;
+}
+
+/**
+ * Broadcast a message to all clients subscribed to a specific image.
+ */
+export function broadcastToImage(imageId, message, excludeWs = null) {
+  const payload = typeof message === 'string' ? message : JSON.stringify(message);
+  for (const [ws, info] of clients) {
+    if (ws !== excludeWs && info.imageId === imageId && ws.readyState === 1) {
+      ws.send(payload);
+    }
+  }
+}
+
+/**
+ * Broadcast a message to all connected clients.
+ */
+export function broadcastAll(message, excludeWs = null) {
+  const payload = typeof message === 'string' ? message : JSON.stringify(message);
+  for (const [ws] of clients) {
+    if (ws !== excludeWs && ws.readyState === 1) {
+      ws.send(payload);
+    }
+  }
+}
+
+
+=== FILE: server/db.js ===
+
+
+import Database from 'better-sqlite3';
+import { fileURLToPath } from 'url';
+import path from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const dbPath = path.join(__dirname, '..', 'data', 'datatail.db');
+const db = new Database(dbPath);
+
+// Enable WAL mode for better concurrent read performance
+db.pragma('journal_mode = WAL');
+db.pragma('foreign_keys = ON');
+
+// Create tables
+db.exec(`
+  CREATE TABLE IF NOT EXISTS projects (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS images (
+    id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL,
+    filename TEXT NOT NULL,
+    original_name TEXT NOT NULL,
+    width INTEGER DEFAULT 0,
+    height INTEGER DEFAULT 0,
+    clip_embedding TEXT,
+    uploaded_by TEXT,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS annotations (
+    id TEXT PRIMARY KEY,
+    image_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    label TEXT,
+    type TEXT NOT NULL CHECK(type IN ('polygon', 'bbox', 'mask')),
+    data TEXT NOT NULL,
+    confidence REAL,
+    source TEXT NOT NULL DEFAULT 'manual' CHECK(source IN ('manual', 'sam-click', 'sam-box', 'sam-auto', 'nl-agent', 'ai-segment')),
+    created_by TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (image_id) REFERENCES images(id) ON DELETE CASCADE,
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS label_classes (
+    id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    color TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS review_issues (
+    id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL,
+    image_id TEXT NOT NULL,
+    annotation_id TEXT,
+    type TEXT,
+    severity TEXT NOT NULL CHECK(severity IN ('error', 'warning', 'info')),
+    message TEXT NOT NULL,
+    suggestion TEXT,
+    status TEXT NOT NULL DEFAULT 'open' CHECK(status IN ('open', 'accepted', 'dismissed')),
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+    FOREIGN KEY (image_id) REFERENCES images(id) ON DELETE CASCADE,
+    FOREIGN KEY (annotation_id) REFERENCES annotations(id) ON DELETE SET NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS users (
+    login TEXT PRIMARY KEY,
+    role TEXT NOT NULL
+  );
+
+`);
+
+export default db;
+
+
+=== FILE: server/index.js ===
+
+
+import express from 'express';
+import cors from 'cors';
+import http from 'http';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+import { setupWebSocket } from './websocket.js';
+import projectsRouter from './routes/projects.js';
+import imagesRouter from './routes/images.js';
+import annotationsRouter from './routes/annotations.js';
+import labelsRouter from './routes/labels.js';
+import aiRouter from './routes/ai.js';
+import reviewsRouter from './routes/reviews.js';
+
+// Ensure db is initialized (tables created on import)
+import db from './db.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// CORS — allow localhost origins
+app.use(cors({
+  origin: (origin, callback) => {
+    // Notem ipv4 and ipv6 are included since we have localhost
+    if (!origin || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+}));
+
+// Body parsing
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true }));
+
+// Static file serving for uploads
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
+
+// Middleware: extract Tailscale user identity
+app.use((req, res, next) => {
+  req.user = req.headers['tailscale-user-login']
+    || req.headers['x-webauth-user']
+    || 'local-user';
+  next();
+});
+
+// Mount routes
+app.use('/api/projects', projectsRouter);
+app.use('/api/projects/:projectId/images', imagesRouter);
+app.use('/api/annotations', annotationsRouter);
+app.use('/api/projects/:projectId/labels', labelsRouter);
+app.use('/api/ai', aiRouter);
+app.use('/api/reviews', reviewsRouter);
+
+// GET /api/images/:imageId — fetch single image by ID (project-agnostic)
+app.get('/api/images/:imageId', (req, res) => {
+  const image = db.prepare('SELECT * FROM images WHERE id = ?').get(req.params.imageId);
+  if (!image) return res.status(404).json({ error: 'Image not found' });
+  res.json(image);
+});
+
+// GET /api/images/:imageId/file — serve the actual image file
+app.get('/api/images/:imageId/file', (req, res) => {
+  const image = db.prepare('SELECT * FROM images WHERE id = ?').get(req.params.imageId);
+  if (!image) return res.status(404).json({ error: 'Image not found' });
+  const filePath = path.join(__dirname, '..', 'uploads', image.project_id, image.filename);
+  if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'File not found' });
+  res.sendFile(filePath);
+});
+
+// DELETE /api/images/:imageId — delete image by ID (project-agnostic)
+app.delete('/api/images/:imageId', (req, res) => {
+  const image = db.prepare('SELECT * FROM images WHERE id = ?').get(req.params.imageId);
+  if (!image) return res.status(404).json({ error: 'Image not found' });
+  const filePath = path.join(__dirname, '..', 'uploads', image.project_id, image.filename);
+  try { fs.unlinkSync(filePath); } catch { }
+  db.prepare('DELETE FROM images WHERE id = ?').run(req.params.imageId);
+  res.json({ success: true });
+});
+
+// Health check
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', user: req.user });
+});
+
+// Error handling middleware
+app.use((err, req, res, _next) => {
+  console.error(`[ERROR] ${req.method} ${req.path}:`, err.message);
+  const status = err.status || 500;
+  res.status(status).json({
+    error: err.message || 'Internal server error',
+  });
+});
+
+// Create HTTP server and attach WebSocket
+const server = http.createServer(app);
+setupWebSocket(server);
+
+server.listen(PORT, '127.0.0.1', () => {
+  console.log(`dataTail server listening on http://127.0.0.1:${PORT}`);
+});
+
+export default app;
+
+
+=== FILE: client/src/App.jsx ===
+
+
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import ProjectList from './components/ProjectList';
+import ProjectView from './components/ProjectView';
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<ProjectList />} />
+        <Route path="/project/:projectId" element={<ProjectView />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
+
+
+=== FILE: client/src/hooks/useWebSocket.js ===
+
+
+import { useEffect, useRef, useCallback } from 'react';
+import { useStore } from '../store';
+
+export function useWebSocket() {
+  const wsRef = useRef(null);
+  const reconnectTimer = useRef(null);
+  const mountedRef = useRef(true);
+  const store = useStore();
+
+  useEffect(() => {
+    mountedRef.current = true;
+
+    function connect() {
+      // In dev, connect directly to the backend server to avoid Vite HMR proxy conflicts.
+      // In production, use the same host as the page.
+      const isDev = window.location.port === '5173';
+      const wsUrl = isDev
+        ? 'ws://127.0.0.1:3000/ws'
+        : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`;
+
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
+
+      ws.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+        switch (msg.type) {
+          case 'cursor':
+            store.setCursor(msg.user, { x: msg.x, y: msg.y });
+            break;
+          case 'annotation-created':
+            store.addAnnotation(msg.annotation);
+            break;
+          case 'annotation-updated':
+            store.updateAnnotation(msg.annotation.id, msg.annotation);
+            break;
+          case 'annotation-deleted':
+            store.removeAnnotation(msg.annotationId);
+            break;
+          case 'presence':
+            store.setConnectedUsers(msg.users);
+            break;
+        }
+      };
+
+      ws.onclose = () => {
+        if (mountedRef.current) {
+          reconnectTimer.current = setTimeout(() => {
+            if (mountedRef.current) {
+              connect();
+            }
+          }, 2000);
+        }
+      };
+
+      ws.onerror = () => {
+        // Suppress noisy errors; onclose will handle reconnect
+      };
+    }
+
+    connect();
+
+    return () => {
+      mountedRef.current = false;
+      clearTimeout(reconnectTimer.current);
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
+  }, []);
+
+  const sendCursor = useCallback((position) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: 'cursor', x: position.x, y: position.y }));
+    }
+  }, []);
+
+  const subscribeToImage = useCallback((imageId) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: 'subscribe-image', imageId }));
+    }
+  }, []);
+
+  return { sendCursor, subscribeToImage };
+}
+
+
+=== FILE: client/src/main.jsx ===
+
+
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import './index.css'
+import App from './App.jsx'
+
+createRoot(document.getElementById('root')).render(
+  <StrictMode>
+    <App />
+  </StrictMode>,
+)
+
+
+=== FILE: client/src/api.js ===
+
+
+const API = '/api';
+
+async function request(url, options = {}) {
+  const res = await fetch(url, options);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error || res.statusText);
+  }
+  return res.json();
+}
+
+function jsonPost(url, body) {
+  return request(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+
+function jsonPut(url, body) {
+  return request(url, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+
+function jsonDelete(url) {
+  return request(url, { method: 'DELETE' });
+}
+
+// ── Projects ──────────────────────────────────────────────
+
+export async function fetchProjects() {
+  return request(`${API}/projects`);
+}
+
+export async function createProject(name, description) {
+  return jsonPost(`${API}/projects`, { name, description });
+}
+
+export async function fetchProject(id) {
+  return request(`${API}/projects/${id}`);
+}
+
+export async function deleteProject(id) {
+  return jsonDelete(`${API}/projects/${id}`);
+}
+
+// ── Images ────────────────────────────────────────────────
+
+export async function fetchImages(projectId) {
+  return request(`${API}/projects/${projectId}/images`);
+}
+
+export async function uploadImages(projectId, files) {
+  const form = new FormData();
+  for (const file of files) form.append('images', file);
+  const res = await fetch(`${API}/projects/${projectId}/images/upload`, {
+    method: 'POST',
+    body: form,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error || res.statusText);
+  }
+  return res.json();
+}
+
+export async function fetchImage(imageId) {
+  return request(`${API}/images/${imageId}`);
+}
+
+export async function deleteImage(imageId) {
+  return jsonDelete(`${API}/images/${imageId}`);
+}
+
+// ── Annotations ───────────────────────────────────────────
+
+export async function fetchAnnotations(imageId) {
+  return request(`${API}/annotations/image/${imageId}`);
+}
+
+export async function createAnnotation(data) {
+  // data: { image_id, project_id, label, type, data, source }
+  return jsonPost(`${API}/annotations`, data);
+}
+
+export async function updateAnnotation(id, data) {
+  return jsonPut(`${API}/annotations/${id}`, data);
+}
+
+export async function deleteAnnotation(id) {
+  return jsonDelete(`${API}/annotations/${id}`);
+}
+
+export async function createAnnotationsBatch(annotations) {
+  return jsonPost(`${API}/annotations/batch`, { annotations });
+}
+
+// ── Labels ────────────────────────────────────────────────
+
+export async function fetchLabels(projectId) {
+  return request(`${API}/projects/${projectId}/labels`);
+}
+
+export async function createLabel(projectId, name, color) {
+  return jsonPost(`${API}/projects/${projectId}/labels`, { name, color });
+}
+
+export async function updateLabel(id, name, color, projectId) {
+  return jsonPut(`${API}/projects/${projectId}/labels/${id}`, { name, color });
+}
+
+export async function deleteLabel(id, projectId) {
+  return jsonDelete(`${API}/projects/${projectId}/labels/${id}`);
+}
+
+// ── AI ────────────────────────────────────────────────────
+
+export async function segmentClick(imageId, points, labels) {
+  return jsonPost(`${API}/ai/segment/click`, {
+    image_id: imageId,
+    points,
+    labels,
+  });
+}
+
+export async function segmentBox(imageId, box) {
+  return jsonPost(`${API}/ai/segment/box`, {
+    image_id: imageId,
+    box,
+  });
+}
+
+export async function segmentEverything(imageId) {
+  return jsonPost(`${API}/ai/segment/everything`, {
+    image_id: imageId,
+  });
+}
+
+export async function segmentRefine(imageId, mask_rle, positivePoints, negativePoints) {
+  return jsonPost(`${API}/ai/segment/refine`, {
+    image_id: imageId,
+    mask_rle,
+    positive_points: positivePoints,
+    negative_points: negativePoints,
+  });
+}
+
+export async function clipClassify(imageId, labels) {
+  return jsonPost(`${API}/ai/clip/classify`, {
+    image_id: imageId,
+    labels,
+  });
+}
+
+export async function clipEmbed(imageId) {
+  return jsonPost(`${API}/ai/clip/embed`, {
+    image_id: imageId,
+  });
+}
+
+export async function nlAnnotate(imageId, command, projectId) {
+  return jsonPost(`${API}/ai/agent/nl-annotate`, {
+    image_id: imageId,
+    project_id: projectId,
+    prompt: command,
+  });
+}
+
+export async function qualityReview(imageId, projectId) {
+  return jsonPost(`${API}/ai/agent/quality-review`, {
+    image_id: imageId,
+    project_id: projectId,
+  });
+}
+
+export async function datasetHealth(projectId) {
+  return jsonPost(`${API}/ai/agent/dataset-health`, {
+    project_id: projectId,
+  });
+}
+
+// ── Reviews ───────────────────────────────────────────────
+
+export async function fetchReviewIssues(projectId) {
+  return request(`${API}/reviews/project/${projectId}`);
+}
+
+export async function updateReviewIssue(id, status) {
+  return jsonPut(`${API}/reviews/${id}`, { status });
+}
+
+
+=== FILE: client/src/store.js ===
+
+
+import { create } from 'zustand'
+
+export const useStore = create((set, get) => ({
+  // Projects
+  projects: [],
+  currentProject: null,
+  setProjects: (projects) => set({ projects }),
+  setCurrentProject: (project) => set({ currentProject: project }),
+
+  // Images
+  images: [],
+  currentImage: null,
+  setImages: (images) => set({ images }),
+  setCurrentImage: (image) => set({ currentImage: image }),
+
+  // Annotations for current image
+  annotations: [],
+  selectedAnnotation: null,
+  setAnnotations: (annotations) => set({ annotations }),
+  addAnnotation: (ann) => set(s => ({ annotations: [...s.annotations, ann] })),
+  updateAnnotation: (id, data) => set(s => ({
+    annotations: s.annotations.map(a => a.id === id ? { ...a, ...data } : a)
+  })),
+  removeAnnotation: (id) => set(s => ({
+    annotations: s.annotations.filter(a => a.id !== id)
+  })),
+  setSelectedAnnotation: (ann) => set({ selectedAnnotation: ann }),
+
+  // Label classes
+  labelClasses: [],
+  activeLabel: null,
+  setLabelClasses: (classes) => set({ labelClasses: classes }),
+  setActiveLabel: (label) => set({ activeLabel: label }),
+
+  // Tool state
+  activeTool: 'select', // 'select', 'click-segment', 'box-segment', 'pan', 'zoom'
+  setActiveTool: (tool) => set({ activeTool: tool }),
+
+  // Canvas state
+  zoom: 1,
+  pan: { x: 0, y: 0 },
+  setZoom: (zoom) => set({ zoom }),
+  setPan: (pan) => set({ pan }),
+
+  // AI state
+  isAiProcessing: false,
+  aiResults: [], // pending AI suggestions
+  setAiProcessing: (v) => set({ isAiProcessing: v }),
+  setAiResults: (results) => set({ aiResults: results }),
+  clearAiResults: () => set({ aiResults: [] }),
+
+  // Chat messages (NL annotation)
+  chatMessages: [],
+  addChatMessage: (msg) => set(s => ({ chatMessages: [...s.chatMessages, msg] })),
+  clearChat: () => set({ chatMessages: [] }),
+
+  // Review issues
+  reviewIssues: [],
+  setReviewIssues: (issues) => set({ reviewIssues: issues }),
+
+  // Dataset health
+  datasetHealth: null,
+  setDatasetHealth: (health) => set({ datasetHealth: health }),
+
+  // Connected users (presence) — array of username strings
+  connectedUsers: [],
+  setConnectedUsers: (users) => set({
+    connectedUsers: users.map(u => typeof u === 'string' ? u : u.user || '?')
+  }),
+
+  // User cursors
+  cursors: {},
+  setCursor: (user, pos) => set(s => ({
+    cursors: { ...s.cursors, [user]: pos }
+  })),
+  removeCursor: (user) => set(s => {
+    const { [user]: _, ...rest } = s.cursors;
+    return { cursors: rest };
+  }),
+
+  // Current user
+  currentUser: 'local-user',
+  setCurrentUser: (user) => set({ currentUser: user }),
+}))
+
+
+=== FILE: client/vite.config.js ===
+
+
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react-swc'
+
+// https://vite.dev/config/
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    proxy: {
+      '/api': 'http://127.0.0.1:3000',
+      '/uploads': 'http://127.0.0.1:3000'
+    }
+  }
+})

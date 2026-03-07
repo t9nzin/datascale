@@ -1,6 +1,5 @@
 import * as dotenv from 'dotenv';
 dotenv.config();
-
 import express, { Request, Response, NextFunction } from 'express';
 import {
   listDevices,
@@ -25,6 +24,7 @@ declare global {
 }
 
 const app = express();
+
 app.use(express.json());
 
 const PORT = Number(process.env.ADMIN_PORT) || 4000;

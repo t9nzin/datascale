@@ -23,7 +23,10 @@ function jsonDelete(url) {
 }
 
 // Identity / auth
-export const fetchMe = () => request('/api/me');
+export const fetchMe = async () => {
+  const dat = await request('/api/me')
+  return dat
+};
 
 // Devices
 export const fetchDevices = () => request('/api/tailnet/devices');

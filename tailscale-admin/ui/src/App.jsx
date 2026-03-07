@@ -27,6 +27,7 @@ export default function App() {
   }
 
   if (!me?.tailnetServiceAvailable) {
+    console.log("what")
     return (
       <div style={S.center}>
         <div style={{ fontSize: 20, fontWeight: 700, color: '#ff4a4a', marginBottom: 12 }}>

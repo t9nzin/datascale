@@ -5,6 +5,9 @@ import react from '@vitejs/plugin-react-swc'
 export default defineConfig({
   plugins: [react()],
   server: {
+    allowedHosts: [
+      'fedora.tail39b3f6.ts.net'
+    ],
     proxy: {
       '/api': 'http://127.0.0.1:3000',
       '/uploads': 'http://127.0.0.1:3000'
