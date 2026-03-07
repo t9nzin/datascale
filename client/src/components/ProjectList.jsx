@@ -3,12 +3,522 @@ import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store';
 import * as api from '../api';
 
+// ── Constants ────────────────────────────────────────────────────────────────
+
 const ACCENT = '#6C5CE7';
 const ACCENT_BG = 'rgba(108, 92, 231, 0.10)';
-const TEXT_PRIMARY = '#555';
+const TEXT_PRIMARY = '#1a1a1a';
 const TEXT_SECONDARY = '#888';
 const TEXT_MUTED = '#aaa';
-const BORDER = '#e5e5e5';
+const BORDER = '#e8e8e8';
+const BG = '#f4f5f7';
+
+// ── Icons ────────────────────────────────────────────────────────────────────
+
+function LogoIcon() {
+  return (
+    <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+      <rect width="36" height="36" rx="10" fill={ACCENT} />
+      <path d="M18 8l-8 14h5v6l8-14h-5v-6z" fill="white" opacity="0.9" />
+    </svg>
+  );
+}
+
+function NavProjectsIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="7" height="7" rx="1" />
+      <rect x="14" y="3" width="7" height="7" rx="1" />
+      <rect x="3" y="14" width="7" height="7" rx="1" />
+      <rect x="14" y="14" width="7" height="7" rx="1" />
+    </svg>
+  );
+}
+
+function NavDatasetsIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+    </svg>
+  );
+}
+
+function NavModelHubIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
+    </svg>
+  );
+}
+
+function NavTeamIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
+    </svg>
+  );
+}
+
+function NavSettingsIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
+    </svg>
+  );
+}
+
+function StatImagesIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+      <circle cx="8.5" cy="8.5" r="1.5" />
+      <polyline points="21 15 16 10 5 21" />
+    </svg>
+  );
+}
+
+function StatAnnotationsIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#27ae60" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
+      <polyline points="22 4 12 14.01 9 11.01" />
+    </svg>
+  );
+}
+
+function StatReviewIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e67e22" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
+    </svg>
+  );
+}
+
+function ImportIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+      <polyline points="17 8 12 3 7 8" />
+      <line x1="12" y1="3" x2="12" y2="15" />
+    </svg>
+  );
+}
+
+function PlusIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  );
+}
+
+function ListViewIcon({ active }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? ACCENT : '#bbb'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="8" y1="6" x2="21" y2="6" />
+      <line x1="8" y1="12" x2="21" y2="12" />
+      <line x1="8" y1="18" x2="21" y2="18" />
+      <line x1="3" y1="6" x2="3.01" y2="6" />
+      <line x1="3" y1="12" x2="3.01" y2="12" />
+      <line x1="3" y1="18" x2="3.01" y2="18" />
+    </svg>
+  );
+}
+
+function GridViewIcon({ active }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? ACCENT : '#bbb'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="7" height="7" />
+      <rect x="14" y="3" width="7" height="7" />
+      <rect x="3" y="14" width="7" height="7" />
+      <rect x="14" y="14" width="7" height="7" />
+    </svg>
+  );
+}
+
+function ImageSmallIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+      <circle cx="8.5" cy="8.5" r="1.5" />
+      <polyline points="21 15 16 10 5 21" />
+    </svg>
+  );
+}
+
+function TagSmallIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" />
+      <circle cx="7" cy="7" r="1" />
+    </svg>
+  );
+}
+
+function ArrowRightIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="5" y1="12" x2="19" y2="12" />
+      <polyline points="12 5 19 12 12 19" />
+    </svg>
+  );
+}
+
+// ── Nav items ────────────────────────────────────────────────────────────────
+
+const NAV_ITEMS = [
+  { id: 'projects', label: 'Projects', Icon: NavProjectsIcon },
+  { id: 'datasets', label: 'Datasets', Icon: NavDatasetsIcon },
+  { id: 'modelhub', label: 'Model Hub', Icon: NavModelHubIcon },
+  { id: 'team', label: 'Team', Icon: NavTeamIcon },
+  { id: 'settings', label: 'Settings', Icon: NavSettingsIcon },
+];
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function formatCount(n) {
+  if (n >= 10000) return `${(n / 1000).toFixed(1)}k`;
+  if (n >= 1000) return n.toLocaleString();
+  return String(n);
+}
+
+// ── Stat Card ────────────────────────────────────────────────────────────────
+
+function StatCard({ icon, label, value, tintBg }) {
+  return (
+    <div
+      style={{
+        flex: 1,
+        background: '#fff',
+        borderRadius: 16,
+        border: `1px solid ${BORDER}`,
+        padding: '24px 28px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 20,
+      }}
+    >
+      <div
+        style={{
+          width: 52,
+          height: 52,
+          borderRadius: 14,
+          background: tintBg,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}
+      >
+        {icon}
+      </div>
+      <div>
+        <div
+          style={{
+            fontSize: 12,
+            fontWeight: 600,
+            color: TEXT_SECONDARY,
+            textTransform: 'uppercase',
+            letterSpacing: 1,
+            marginBottom: 4,
+          }}
+        >
+          {label}
+        </div>
+        <div style={{ fontSize: 28, fontWeight: 700, color: TEXT_PRIMARY }}>
+          {value}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Project Card ─────────────────────────────────────────────────────────────
+
+function ProjectCard({ project, onClick }) {
+  const pct = project.image_count > 0
+    ? Math.round(((project.done_count ?? 0) / project.image_count) * 100)
+    : 0;
+  const isDone = pct === 100;
+  const barColor = isDone ? '#27ae60' : ACCENT;
+
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        background: '#fff',
+        borderRadius: 18,
+        border: `1px solid ${BORDER}`,
+        cursor: 'pointer',
+        transition: 'box-shadow 0.2s, transform 0.2s, border-color 0.2s',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.boxShadow = '0 8px 32px rgba(108,92,231,0.13)';
+        e.currentTarget.style.borderColor = ACCENT;
+        e.currentTarget.style.transform = 'translateY(-2px)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.boxShadow = 'none';
+        e.currentTarget.style.borderColor = BORDER;
+        e.currentTarget.style.transform = 'translateY(0)';
+      }}
+    >
+      {/* Top section with thumbnail area */}
+      <div
+        style={{
+          padding: '20px 24px 0',
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: 16,
+        }}
+      >
+        {/* Thumbnail placeholder */}
+        <div
+          style={{
+            width: 80,
+            height: 80,
+            borderRadius: 12,
+            background: `linear-gradient(135deg, ${ACCENT}18, ${ACCENT}38)`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+            overflow: 'hidden',
+          }}
+        >
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.6">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+            <circle cx="8.5" cy="8.5" r="1.5" />
+            <polyline points="21 15 16 10 5 21" />
+          </svg>
+        </div>
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {/* Type badge */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                color: '#27ae60',
+                background: 'rgba(39, 174, 96, 0.08)',
+                border: '1px solid rgba(39, 174, 96, 0.2)',
+                padding: '2px 10px',
+                borderRadius: 4,
+                textTransform: 'uppercase',
+                letterSpacing: 0.8,
+              }}
+            >
+              {(project.annotation_count ?? 0) > 0 ? 'Annotated' : 'New'}
+            </span>
+            {/* User avatar */}
+            <div
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: '50%',
+                background: ACCENT,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 10,
+                fontWeight: 700,
+                color: '#fff',
+              }}
+            >
+              LU
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Title + description */}
+      <div style={{ padding: '12px 24px 0' }}>
+        <div
+          style={{
+            fontSize: 18,
+            fontWeight: 700,
+            color: TEXT_PRIMARY,
+            marginBottom: 6,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {project.name}
+        </div>
+        <div
+          style={{
+            fontSize: 13,
+            color: TEXT_SECONDARY,
+            lineHeight: 1.5,
+            minHeight: 40,
+            overflow: 'hidden',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+          }}
+        >
+          {project.description || 'No description provided.'}
+        </div>
+      </div>
+
+      {/* Stats row */}
+      <div
+        style={{
+          padding: '14px 24px 0',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 16,
+          fontSize: 13,
+          color: TEXT_SECONDARY,
+        }}
+      >
+        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          <ImageSmallIcon />
+          {formatCount(project.image_count ?? 0)}
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: ACCENT }}>
+          <TagSmallIcon />
+          {project.annotation_count ?? 0} labels
+        </span>
+        <span style={{ marginLeft: 'auto', fontWeight: 600, color: isDone ? '#27ae60' : TEXT_SECONDARY }}>
+          {isDone ? (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              DONE
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#27ae60" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            </span>
+          ) : (
+            `${pct}%`
+          )}
+        </span>
+      </div>
+
+      {/* Progress bar */}
+      <div style={{ padding: '8px 24px 0' }}>
+        <div
+          style={{
+            height: 5,
+            background: '#f0f0f0',
+            borderRadius: 3,
+            overflow: 'hidden',
+          }}
+        >
+          <div
+            style={{
+              width: `${Math.max(pct, 2)}%`,
+              height: '100%',
+              background: barColor,
+              borderRadius: 3,
+              transition: 'width 0.3s',
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Action button */}
+      <div style={{ padding: '16px 24px 20px' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            padding: '12px 0',
+            borderRadius: 12,
+            background: isDone ? 'transparent' : '#1a1a2e',
+            color: isDone ? TEXT_PRIMARY : '#fff',
+            border: isDone ? `1.5px solid ${BORDER}` : 'none',
+            fontSize: 14,
+            fontWeight: 600,
+            transition: 'background 0.15s',
+          }}
+        >
+          {isDone ? 'Export Model' : 'Open Project'}
+          {isDone ? (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+          ) : (
+            <ArrowRightIcon />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── New Dataset Card ─────────────────────────────────────────────────────────
+
+function NewDatasetCard({ onClick }) {
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        borderRadius: 18,
+        border: `2px dashed #d5d5d5`,
+        cursor: 'pointer',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '40px 24px',
+        transition: 'border-color 0.2s, background 0.2s',
+        background: 'transparent',
+        minHeight: 320,
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = ACCENT;
+        e.currentTarget.style.background = 'rgba(108, 92, 231, 0.03)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = '#d5d5d5';
+        e.currentTarget.style.background = 'transparent';
+      }}
+    >
+      <div
+        style={{
+          width: 56,
+          height: 56,
+          borderRadius: 16,
+          border: `2px solid #d5d5d5`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: 20,
+          color: '#bbb',
+        }}
+      >
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+      </div>
+      <div style={{ fontSize: 18, fontWeight: 700, color: TEXT_PRIMARY, marginBottom: 8 }}>
+        New Dataset
+      </div>
+      <div style={{ fontSize: 13, color: TEXT_MUTED, textAlign: 'center', lineHeight: 1.5 }}>
+        Start annotating a new<br />collection of images.
+      </div>
+    </div>
+  );
+}
+
+// ── Main Component ───────────────────────────────────────────────────────────
 
 export default function ProjectList() {
   const projects = useStore((s) => s.projects);
@@ -24,6 +534,7 @@ export default function ProjectList() {
   const [imageFiles, setImageFiles] = useState([]);
   const [creating, setCreating] = useState(false);
   const [uploadStatus, setUploadStatus] = useState('');
+  const [activeNav, setActiveNav] = useState('projects');
   const filesInputRef = useRef(null);
   const folderInputRef = useRef(null);
 
@@ -61,7 +572,7 @@ export default function ProjectList() {
         const BATCH = 50;
         for (let i = 0; i < imageFiles.length; i += BATCH) {
           const batch = imageFiles.slice(i, i + BATCH);
-          setUploadStatus(`Uploading images ${i + 1}–${Math.min(i + BATCH, imageFiles.length)} of ${imageFiles.length}...`);
+          setUploadStatus(`Uploading images ${i + 1}--${Math.min(i + BATCH, imageFiles.length)} of ${imageFiles.length}...`);
           await api.uploadImages(project.id, batch);
         }
       }
@@ -86,145 +597,277 @@ export default function ProjectList() {
     }
   }
 
+  // Compute aggregate stats
+  const totalImages = projects.reduce((s, p) => s + (p.image_count ?? 0), 0);
+  const totalAnnotations = projects.reduce((s, p) => s + (p.annotation_count ?? 0), 0);
+  const totalDone = projects.reduce((s, p) => s + (p.done_count ?? 0), 0);
+  const annotationPct = totalImages > 0 ? ((totalDone / totalImages) * 100).toFixed(1) : '0.0';
+  const reviewQueue = Math.max(0, totalImages - totalDone);
+
   return (
     <div
       style={{
+        display: 'flex',
         minHeight: '100vh',
-        background: '#f0f0f0',
-        color: TEXT_PRIMARY,
+        background: BG,
         fontFamily: '-apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif',
+        color: TEXT_PRIMARY,
       }}
     >
-      {/* Top navbar */}
-      <div
+      {/* ── Left Sidebar ────────────────────────────────────────── */}
+      <aside
         style={{
-          height: 78,
+          width: 240,
           background: '#fff',
-          borderBottom: `1px solid ${BORDER}`,
+          borderRight: `1px solid ${BORDER}`,
           display: 'flex',
-          alignItems: 'center',
-          padding: '0 36px',
-          gap: 18,
-          position: 'sticky',
+          flexDirection: 'column',
+          flexShrink: 0,
+          position: 'fixed',
           top: 0,
-          zIndex: 100,
+          left: 0,
+          bottom: 0,
+          zIndex: 50,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
-            <rect width="24" height="24" rx="6" fill={ACCENT} />
-            <path d="M6 18L12 6l6 12H6z" fill="white" />
-          </svg>
-          <span style={{ fontWeight: 700, fontSize: 24, color: TEXT_PRIMARY }}>dataTail</span>
-        </div>
-
-        <span style={{ flex: 1 }} />
-
+        {/* Logo */}
         <div
           style={{
-            padding: '4px 14px',
-            background: ACCENT_BG,
-            borderRadius: 20,
-            fontSize: 16,
-            fontWeight: 600,
-            color: ACCENT,
-          }}
-        >
-          Beta
-        </div>
-
-        <div
-          style={{
-            width: 42,
-            height: 42,
-            borderRadius: '50%',
-            background: ACCENT,
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 16,
-            fontWeight: 700,
-            color: '#ffffff',
+            gap: 12,
+            padding: '28px 24px 32px',
           }}
         >
-          LU
+          <LogoIcon />
+          <span style={{ fontSize: 20, fontWeight: 700, color: TEXT_PRIMARY }}>dataTail</span>
         </div>
-      </div>
 
-      {/* Page body */}
-      <div style={{ padding: '48px 48px 60px', maxWidth: 1200, margin: '0 auto' }}>
-        {/* Welcome */}
-        <h1 style={{ fontSize: 42, fontWeight: 700, color: TEXT_PRIMARY, margin: '0 0 8px 0', letterSpacing: -0.5 }}>
-          Welcome
-        </h1>
-        <p style={{ fontSize: 21, color: TEXT_SECONDARY, margin: '0 0 36px 0' }}>
-          Let's get you started with your annotation projects.
-        </p>
+        {/* Nav items */}
+        <nav style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '0 12px' }}>
+          {NAV_ITEMS.map((item) => {
+            const isActive = activeNav === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveNav(item.id)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 14,
+                  padding: '12px 16px',
+                  background: isActive ? ACCENT_BG : 'transparent',
+                  color: isActive ? ACCENT : '#555',
+                  border: 'none',
+                  borderRadius: 10,
+                  cursor: 'pointer',
+                  fontSize: 15,
+                  fontWeight: isActive ? 600 : 400,
+                  transition: 'background 0.15s, color 0.15s',
+                  textAlign: 'left',
+                  width: '100%',
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = '#f5f5f5';
+                    e.currentTarget.style.color = TEXT_PRIMARY;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.color = '#555';
+                  }
+                }}
+              >
+                <item.Icon />
+                {item.label}
+              </button>
+            );
+          })}
+        </nav>
 
-        {/* Action buttons */}
-        <div style={{ display: 'flex', gap: 16, marginBottom: 40 }}>
-          <button
-            onClick={() => setShowModal(true)}
+        <div style={{ flex: 1 }} />
+
+        {/* Bottom: Usage */}
+        <div style={{ padding: '0 16px 12px' }}>
+          <div
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              padding: '16px 28px',
+              background: 'rgba(108, 92, 231, 0.06)',
+              borderRadius: 12,
+              padding: '14px 16px',
+            }}
+          >
+            <div
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                color: ACCENT,
+                textTransform: 'uppercase',
+                letterSpacing: 0.8,
+                marginBottom: 6,
+              }}
+            >
+              Usage
+            </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8 }}>
+              <span style={{ fontSize: 13, fontWeight: 500, color: TEXT_PRIMARY }}>
+                {formatCount(totalImages)} images
+              </span>
+            </div>
+            <div
+              style={{
+                height: 4,
+                background: 'rgba(108, 92, 231, 0.15)',
+                borderRadius: 2,
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  width: `${Math.min(100, totalImages > 0 ? (totalDone / totalImages) * 100 : 0)}%`,
+                  height: '100%',
+                  background: ACCENT,
+                  borderRadius: 2,
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom: User */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            padding: '16px 20px',
+            borderTop: `1px solid ${BORDER}`,
+          }}
+        >
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: '50%',
               background: ACCENT,
-              color: '#fff',
-              border: 'none',
-              borderRadius: 14,
-              cursor: 'pointer',
-              fontSize: 20,
-              fontWeight: 600,
-              boxShadow: '0 4px 16px rgba(108, 92, 231, 0.25)',
-              transition: 'background 0.15s, box-shadow 0.15s',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = '#5a4bd6'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = ACCENT; }}
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            Create Project
-          </button>
-          <button
-            style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 12,
-              padding: '16px 28px',
-              background: '#fff',
-              color: ACCENT,
-              border: `2px solid ${ACCENT}`,
-              borderRadius: 14,
-              cursor: 'pointer',
-              fontSize: 20,
-              fontWeight: 600,
-              transition: 'background 0.15s',
+              justifyContent: 'center',
+              fontSize: 13,
+              fontWeight: 700,
+              color: '#fff',
+              flexShrink: 0,
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = ACCENT_BG; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; }}
           >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-              <polyline points="17 8 12 3 7 8" />
-              <line x1="12" y1="3" x2="12" y2="15" />
-            </svg>
-            Import Dataset
-          </button>
+            LU
+          </div>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: TEXT_PRIMARY }}>Local User</div>
+            <div style={{ fontSize: 11, color: TEXT_MUTED, fontWeight: 500 }}>PRO PLAN</div>
+          </div>
+        </div>
+      </aside>
+
+      {/* ── Main Content ────────────────────────────────────────── */}
+      <main
+        style={{
+          flex: 1,
+          marginLeft: 240,
+          padding: '40px 48px 60px',
+          minHeight: '100vh',
+          overflowY: 'auto',
+        }}
+      >
+        {/* Header row */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
+          <div>
+            <h1 style={{ fontSize: 32, fontWeight: 700, color: TEXT_PRIMARY, margin: 0 }}>
+              Project Workspace
+            </h1>
+            <p style={{ fontSize: 16, color: TEXT_SECONDARY, margin: '6px 0 0' }}>
+              Manage your training data and annotation tasks.
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: 12, flexShrink: 0, marginTop: 4 }}>
+            <button
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '10px 22px',
+                background: '#fff',
+                color: TEXT_PRIMARY,
+                border: `1.5px solid ${BORDER}`,
+                borderRadius: 10,
+                cursor: 'pointer',
+                fontSize: 14,
+                fontWeight: 600,
+                transition: 'border-color 0.15s',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#bbb'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = BORDER; }}
+            >
+              <ImportIcon />
+              Import
+            </button>
+            <button
+              onClick={() => setShowModal(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '10px 22px',
+                background: ACCENT,
+                color: '#fff',
+                border: 'none',
+                borderRadius: 10,
+                cursor: 'pointer',
+                fontSize: 14,
+                fontWeight: 600,
+                boxShadow: '0 2px 12px rgba(108, 92, 231, 0.3)',
+                transition: 'background 0.15s',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#5a4bd6'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = ACCENT; }}
+            >
+              <PlusIcon />
+              Create Project
+            </button>
+          </div>
+        </div>
+
+        {/* Stats row */}
+        <div style={{ display: 'flex', gap: 20, margin: '32px 0' }}>
+          <StatCard
+            icon={<StatImagesIcon />}
+            label="Total Images"
+            value={formatCount(totalImages)}
+            tintBg="rgba(108, 92, 231, 0.08)"
+          />
+          <StatCard
+            icon={<StatAnnotationsIcon />}
+            label="Annotations"
+            value={`${annotationPct}%`}
+            tintBg="rgba(39, 174, 96, 0.08)"
+          />
+          <StatCard
+            icon={<StatReviewIcon />}
+            label="Review Queue"
+            value={formatCount(reviewQueue)}
+            tintBg="rgba(230, 126, 34, 0.08)"
+          />
         </div>
 
         {error && (
           <div
             style={{
-              padding: '16px 20px',
+              padding: '14px 20px',
               background: 'rgba(231,76,60,0.06)',
               border: '1px solid rgba(231,76,60,0.2)',
               borderRadius: 12,
               color: '#e74c3c',
-              fontSize: 18,
+              fontSize: 14,
               marginBottom: 24,
             }}
           >
@@ -232,140 +875,67 @@ export default function ProjectList() {
           </div>
         )}
 
-        {/* Projects Grid */}
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-            <span style={{ fontSize: 28, fontWeight: 700, color: TEXT_PRIMARY }}>
-              Recent Projects
-            </span>
-            <span
-              onClick={() => setShowModal(true)}
-              style={{ fontSize: 18, color: ACCENT, cursor: 'pointer', fontWeight: 600 }}
-              onMouseEnter={(e) => { e.currentTarget.style.textDecoration = 'underline'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.textDecoration = 'none'; }}
-            >
-              + New Project
-            </span>
-          </div>
-
-          {loading && (
-            <div style={{ padding: '48px 0', color: TEXT_MUTED, fontSize: 20, textAlign: 'center' }}>
-              Loading projects...
-            </div>
-          )}
-
-          {!loading && projects.length === 0 && (
-            <div
+        {/* Recent Projects heading */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+          <h2 style={{ fontSize: 22, fontWeight: 700, color: TEXT_PRIMARY, margin: 0 }}>
+            Recent Projects
+          </h2>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
               style={{
-                padding: '64px 0',
-                textAlign: 'center',
-                background: '#fff',
-                borderRadius: 16,
-                boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                padding: 4,
+                borderRadius: 6,
               }}
             >
-              <div style={{ fontSize: 20, color: TEXT_MUTED, marginBottom: 12 }}>
-                No projects yet.
-              </div>
-              <span
-                onClick={() => setShowModal(true)}
-                style={{ fontSize: 20, color: ACCENT, cursor: 'pointer', fontWeight: 600 }}
-              >
-                Create your first project
-              </span>
-            </div>
-          )}
-
-          {!loading && projects.length > 0 && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340, 1fr))', gap: 20 }}>
-              {projects.map((project) => {
-                const pct = project.image_count > 0
-                  ? Math.round(((project.done_count ?? 0) / project.image_count) * 100)
-                  : 0;
-                return (
-                  <div
-                    key={project.id}
-                    onClick={() => navigate(`/project/${project.id}`)}
-                    style={{
-                      background: '#fff',
-                      borderRadius: 16,
-                      padding: '28px 28px 24px',
-                      cursor: 'pointer',
-                      boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
-                      transition: 'box-shadow 0.2s, transform 0.2s',
-                      border: `1px solid transparent`,
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.boxShadow = '0 6px 24px rgba(108,92,231,0.15)';
-                      e.currentTarget.style.borderColor = ACCENT;
-                      e.currentTarget.style.transform = 'translateY(-2px)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.06)';
-                      e.currentTarget.style.borderColor = 'transparent';
-                      e.currentTarget.style.transform = 'translateY(0)';
-                    }}
-                  >
-                    <div style={{ fontSize: 22, fontWeight: 700, color: TEXT_PRIMARY, marginBottom: 8 }}>
-                      {project.name}
-                    </div>
-                    {project.description && (
-                      <div style={{ fontSize: 17, color: TEXT_SECONDARY, marginBottom: 16, lineHeight: 1.4 }}>
-                        {project.description}
-                      </div>
-                    )}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={TEXT_SECONDARY} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                          <circle cx="8.5" cy="8.5" r="1.5" />
-                          <polyline points="21 15 16 10 5 21" />
-                        </svg>
-                        <span style={{ fontSize: 17, color: TEXT_SECONDARY }}>{project.image_count ?? 0} images</span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={TEXT_SECONDARY} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" />
-                          <circle cx="7" cy="7" r="1" />
-                        </svg>
-                        <span style={{ fontSize: 17, color: TEXT_SECONDARY }}>{project.annotation_count ?? 0} annotations</span>
-                      </div>
-                    </div>
-
-                    {/* Progress bar */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div
-                        style={{
-                          flex: 1,
-                          height: 8,
-                          background: '#f0f0f0',
-                          borderRadius: 4,
-                          overflow: 'hidden',
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: `${Math.min(pct, 100)}%`,
-                            height: '100%',
-                            background: pct > 0 ? ACCENT : 'transparent',
-                            borderRadius: 4,
-                            transition: 'width 0.3s',
-                          }}
-                        />
-                      </div>
-                      <span style={{ fontSize: 16, fontWeight: 600, color: ACCENT, minWidth: 42, textAlign: 'right' }}>
-                        {pct}%
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+              <ListViewIcon active={false} />
+            </button>
+            <button
+              style={{
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                padding: 4,
+                borderRadius: 6,
+              }}
+            >
+              <GridViewIcon active />
+            </button>
+          </div>
         </div>
-      </div>
 
-      {/* Create Project Modal */}
+        {/* Loading */}
+        {loading && (
+          <div style={{ padding: '48px 0', color: TEXT_MUTED, fontSize: 16, textAlign: 'center' }}>
+            Loading projects...
+          </div>
+        )}
+
+        {/* Empty state */}
+        {!loading && projects.length === 0 && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
+            <NewDatasetCard onClick={() => setShowModal(true)} />
+          </div>
+        )}
+
+        {/* Project cards grid */}
+        {!loading && projects.length > 0 && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
+            {projects.map((project) => (
+              <ProjectCard
+                key={project.id}
+                project={project}
+                onClick={() => navigate(`/project/${project.id}`)}
+              />
+            ))}
+            <NewDatasetCard onClick={() => setShowModal(true)} />
+          </div>
+        )}
+      </main>
+
+      {/* ── Create Project Modal ─────────────────────────────────── */}
       {showModal && (
         <div
           style={{
@@ -389,7 +959,7 @@ export default function ProjectList() {
         >
           <div
             style={{
-              width: 600,
+              width: 560,
               background: '#ffffff',
               borderRadius: 20,
               boxShadow: '0 12px 48px rgba(0,0,0,0.15)',
@@ -399,19 +969,18 @@ export default function ProjectList() {
             }}
           >
             {/* Header */}
-            <div style={{ padding: '28px 32px 20px', borderBottom: `1px solid ${BORDER}` }}>
-              <div style={{ fontSize: 28, fontWeight: 700, color: TEXT_PRIMARY }}>New Project</div>
-              <div style={{ fontSize: 18, color: TEXT_SECONDARY, marginTop: 6 }}>
+            <div style={{ padding: '24px 28px 18px', borderBottom: `1px solid ${BORDER}` }}>
+              <div style={{ fontSize: 22, fontWeight: 700, color: TEXT_PRIMARY }}>New Project</div>
+              <div style={{ fontSize: 14, color: TEXT_SECONDARY, marginTop: 4 }}>
                 Set up your annotation project with images and labels
               </div>
             </div>
 
             {/* Body */}
-            <div style={{ padding: '24px 32px', display: 'flex', flexDirection: 'column', gap: 24 }}>
-
+            <div style={{ padding: '20px 28px', display: 'flex', flexDirection: 'column', gap: 20 }}>
               {/* Project Name */}
               <div>
-                <label style={{ fontSize: 18, fontWeight: 600, color: TEXT_PRIMARY, display: 'block', marginBottom: 8 }}>
+                <label style={{ fontSize: 14, fontWeight: 600, color: TEXT_PRIMARY, display: 'block', marginBottom: 6 }}>
                   Project Name
                 </label>
                 <input
@@ -425,12 +994,12 @@ export default function ProjectList() {
                   disabled={creating}
                   style={{
                     width: '100%',
-                    padding: '14px 18px',
+                    padding: '12px 16px',
                     background: '#ffffff',
                     border: `1.5px solid ${BORDER}`,
-                    borderRadius: 12,
+                    borderRadius: 10,
                     color: TEXT_PRIMARY,
-                    fontSize: 18,
+                    fontSize: 14,
                     outline: 'none',
                     boxSizing: 'border-box',
                     transition: 'border-color 0.15s',
@@ -442,7 +1011,7 @@ export default function ProjectList() {
 
               {/* Description */}
               <div>
-                <label style={{ fontSize: 18, fontWeight: 600, color: TEXT_PRIMARY, display: 'block', marginBottom: 8 }}>
+                <label style={{ fontSize: 14, fontWeight: 600, color: TEXT_PRIMARY, display: 'block', marginBottom: 6 }}>
                   Description <span style={{ fontWeight: 400, color: TEXT_MUTED }}>(optional)</span>
                 </label>
                 <textarea
@@ -453,12 +1022,12 @@ export default function ProjectList() {
                   disabled={creating}
                   style={{
                     width: '100%',
-                    padding: '14px 18px',
+                    padding: '12px 16px',
                     background: '#ffffff',
                     border: `1.5px solid ${BORDER}`,
-                    borderRadius: 12,
+                    borderRadius: 10,
                     color: TEXT_PRIMARY,
-                    fontSize: 18,
+                    fontSize: 14,
                     outline: 'none',
                     resize: 'none',
                     fontFamily: 'inherit',
@@ -472,7 +1041,7 @@ export default function ProjectList() {
 
               {/* Class Labels */}
               <div>
-                <label style={{ fontSize: 18, fontWeight: 600, color: TEXT_PRIMARY, display: 'block', marginBottom: 8 }}>
+                <label style={{ fontSize: 14, fontWeight: 600, color: TEXT_PRIMARY, display: 'block', marginBottom: 6 }}>
                   Class Labels <span style={{ fontWeight: 400, color: TEXT_MUTED }}>(optional, comma-separated)</span>
                 </label>
                 <input
@@ -482,12 +1051,12 @@ export default function ProjectList() {
                   disabled={creating}
                   style={{
                     width: '100%',
-                    padding: '14px 18px',
+                    padding: '12px 16px',
                     background: '#ffffff',
                     border: `1.5px solid ${BORDER}`,
-                    borderRadius: 12,
+                    borderRadius: 10,
                     color: TEXT_PRIMARY,
-                    fontSize: 18,
+                    fontSize: 14,
                     outline: 'none',
                     boxSizing: 'border-box',
                     transition: 'border-color 0.15s',
@@ -497,16 +1066,16 @@ export default function ProjectList() {
                   onBlur={(e) => { e.target.style.borderColor = BORDER; }}
                 />
                 {newLabels.trim() && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
                     {newLabels.split(',').map((l) => l.trim()).filter(Boolean).map((label, i) => (
                       <span
                         key={i}
                         style={{
-                          fontSize: 16,
-                          padding: '4px 14px',
+                          fontSize: 13,
+                          padding: '3px 12px',
                           background: ACCENT_BG,
                           color: ACCENT,
-                          borderRadius: 16,
+                          borderRadius: 14,
                           fontWeight: 600,
                         }}
                       >
@@ -519,7 +1088,7 @@ export default function ProjectList() {
 
               {/* Image Upload */}
               <div>
-                <label style={{ fontSize: 18, fontWeight: 600, color: TEXT_PRIMARY, display: 'block', marginBottom: 8 }}>
+                <label style={{ fontSize: 14, fontWeight: 600, color: TEXT_PRIMARY, display: 'block', marginBottom: 6 }}>
                   Images <span style={{ fontWeight: 400, color: TEXT_MUTED }}>(optional)</span>
                 </label>
 
@@ -561,8 +1130,8 @@ export default function ProjectList() {
                   <div
                     style={{
                       border: `2px dashed ${BORDER}`,
-                      borderRadius: 14,
-                      padding: '32px 24px',
+                      borderRadius: 12,
+                      padding: '28px 20px',
                       textAlign: 'center',
                       background: '#fafafa',
                     }}
@@ -578,21 +1147,21 @@ export default function ProjectList() {
                       });
                     }}
                   >
-                    <div style={{ fontSize: 18, color: TEXT_SECONDARY, marginBottom: 16 }}>
+                    <div style={{ fontSize: 14, color: TEXT_SECONDARY, marginBottom: 14 }}>
                       Drop images here, or
                     </div>
-                    <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+                    <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
                       <button
                         type="button"
                         onClick={() => filesInputRef.current?.click()}
                         style={{
-                          padding: '10px 22px',
+                          padding: '8px 18px',
                           background: '#fff',
                           border: `1.5px solid ${BORDER}`,
-                          borderRadius: 10,
+                          borderRadius: 8,
                           color: TEXT_PRIMARY,
                           cursor: 'pointer',
-                          fontSize: 17,
+                          fontSize: 13,
                           fontWeight: 500,
                           transition: 'border-color 0.15s',
                         }}
@@ -605,13 +1174,13 @@ export default function ProjectList() {
                         type="button"
                         onClick={() => folderInputRef.current?.click()}
                         style={{
-                          padding: '10px 22px',
+                          padding: '8px 18px',
                           background: '#fff',
                           border: `1.5px solid ${BORDER}`,
-                          borderRadius: 10,
+                          borderRadius: 8,
                           color: TEXT_PRIMARY,
                           cursor: 'pointer',
-                          fontSize: 17,
+                          fontSize: 13,
                           fontWeight: 500,
                           transition: 'border-color 0.15s',
                         }}
@@ -626,8 +1195,8 @@ export default function ProjectList() {
                   <div
                     style={{
                       border: `1.5px solid ${BORDER}`,
-                      borderRadius: 14,
-                      padding: '18px 22px',
+                      borderRadius: 12,
+                      padding: '14px 18px',
                       background: '#fafafa',
                       display: 'flex',
                       alignItems: 'center',
@@ -635,10 +1204,10 @@ export default function ProjectList() {
                     }}
                   >
                     <div>
-                      <div style={{ fontSize: 18, fontWeight: 600, color: TEXT_PRIMARY }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: TEXT_PRIMARY }}>
                         {imageFiles.length} image{imageFiles.length !== 1 ? 's' : ''} selected
                       </div>
-                      <div style={{ fontSize: 16, color: TEXT_SECONDARY, marginTop: 4 }}>
+                      <div style={{ fontSize: 12, color: TEXT_SECONDARY, marginTop: 2 }}>
                         {(imageFiles.reduce((s, f) => s + f.size, 0) / 1024 / 1024).toFixed(1)} MB total
                       </div>
                     </div>
@@ -647,13 +1216,13 @@ export default function ProjectList() {
                       onClick={() => setImageFiles([])}
                       disabled={creating}
                       style={{
-                        padding: '8px 18px',
+                        padding: '6px 14px',
                         background: 'transparent',
                         border: `1.5px solid ${BORDER}`,
-                        borderRadius: 8,
+                        borderRadius: 6,
                         color: TEXT_SECONDARY,
                         cursor: 'pointer',
-                        fontSize: 16,
+                        fontSize: 13,
                         fontWeight: 500,
                       }}
                     >
@@ -665,24 +1234,24 @@ export default function ProjectList() {
             </div>
 
             {/* Footer */}
-            <div style={{ padding: '18px 32px 28px', borderTop: `1px solid ${BORDER}` }}>
+            <div style={{ padding: '16px 28px 24px', borderTop: `1px solid ${BORDER}` }}>
               {creating && uploadStatus && (
-                <div style={{ fontSize: 17, color: ACCENT, marginBottom: 14, textAlign: 'center', fontWeight: 500 }}>
+                <div style={{ fontSize: 14, color: ACCENT, marginBottom: 12, textAlign: 'center', fontWeight: 500 }}>
                   {uploadStatus}
                 </div>
               )}
-              <div style={{ display: 'flex', gap: 14, justifyContent: 'flex-end' }}>
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
                 <button
                   onClick={() => { setShowModal(false); resetModal(); }}
                   disabled={creating}
                   style={{
-                    padding: '14px 28px',
+                    padding: '10px 24px',
                     background: '#fff',
                     color: TEXT_PRIMARY,
                     border: `1.5px solid ${BORDER}`,
-                    borderRadius: 12,
+                    borderRadius: 10,
                     cursor: creating ? 'default' : 'pointer',
-                    fontSize: 18,
+                    fontSize: 14,
                     fontWeight: 500,
                     opacity: creating ? 0.5 : 1,
                     transition: 'background 0.15s',
@@ -696,15 +1265,15 @@ export default function ProjectList() {
                   onClick={handleCreate}
                   disabled={!newName.trim() || creating}
                   style={{
-                    padding: '14px 32px',
+                    padding: '10px 28px',
                     background: newName.trim() && !creating ? ACCENT : '#e5e5e5',
                     color: newName.trim() && !creating ? '#ffffff' : TEXT_MUTED,
                     border: 'none',
-                    borderRadius: 12,
+                    borderRadius: 10,
                     cursor: newName.trim() && !creating ? 'pointer' : 'default',
-                    fontSize: 18,
+                    fontSize: 14,
                     fontWeight: 600,
-                    boxShadow: newName.trim() && !creating ? '0 4px 16px rgba(108, 92, 231, 0.25)' : 'none',
+                    boxShadow: newName.trim() && !creating ? '0 2px 12px rgba(108, 92, 231, 0.25)' : 'none',
                     transition: 'background 0.15s',
                   }}
                   onMouseEnter={(e) => { if (newName.trim() && !creating) e.currentTarget.style.background = '#5a4bd6'; }}
