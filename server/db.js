@@ -18,6 +18,7 @@ db.exec(`
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     description TEXT,
+    created_by TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
   );
@@ -86,6 +87,13 @@ db.exec(`
 // Migration: add status column to images table
 try {
   db.exec(`ALTER TABLE images ADD COLUMN status TEXT NOT NULL DEFAULT 'pending'`);
+} catch {
+  // Column already exists
+}
+
+// Migration: add created_by column to projects table
+try {
+  db.exec(`ALTER TABLE projects ADD COLUMN created_by TEXT`);
 } catch {
   // Column already exists
 }
