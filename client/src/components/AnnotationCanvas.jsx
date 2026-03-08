@@ -1036,11 +1036,7 @@ export default function AnnotationCanvas({ onAnnotationCreated, annotationsVisib
       try {
         const apiPoints = points.map((p) => ({ x: p.x, y: p.y }));
         const apiLabels = points.map((p) => p.label);
-        const results = await api.segmentClick({
-          image_id: currentImage.id,
-          points: apiPoints,
-          labels: apiLabels,
-        });
+        const results = await api.segmentClick(currentImage.id, apiPoints, apiLabels);
 
         // Results is an array of { polygon, rle, score }
         // Take the best result and present as AI suggestion
@@ -1071,10 +1067,7 @@ export default function AnnotationCanvas({ onAnnotationCreated, annotationsVisib
       setIsAiLoading(true);
       setAiProcessing(true);
       try {
-        const result = await api.segmentBox({
-          image_id: currentImage.id,
-          box,
-        });
+        const result = await api.segmentBox(currentImage.id, box);
 
         // result = { polygon, rle, score }
         if (result && result.polygon) {
