@@ -755,21 +755,27 @@ export default function AnnotationCanvas({ onAnnotationCreated, annotationsVisib
         const aiHit = hitTestAiButtons(cx, cy);
         if (aiHit) {
           if (aiHit.action === 'accept') {
-            // Accept: convert AI suggestion to a real annotation
+            // Accept: convert AI suggestion to a real annotation and persist to DB
             const result = aiHit.result;
             const polygon = parseData(
               result.data || result.polygon || result
             );
             const newAnn = {
-              id: 'temp-' + Date.now(),
+              image_id: currentImage.id,
+              project_id: currentImage.project_id,
               type: 'polygon',
               data: polygon,
               label: result.label || activeLabel?.name || null,
               confidence: result.score ?? null,
               source: 'ai-segment',
             };
-            addAnnotation(newAnn);
-            onAnnotationCreated?.(newAnn);
+            api.createAnnotation(newAnn).then((saved) => {
+              addAnnotation(saved);
+              onAnnotationCreated?.(saved);
+            }).catch((err) => {
+              console.error('Failed to save accepted annotation:', err);
+              addAnnotation({ ...newAnn, id: 'temp-' + Date.now() });
+            });
           }
           // Remove the suggestion regardless
           const updated = [...aiResults];

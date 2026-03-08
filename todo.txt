@@ -1,7 +1,5 @@
 TODO: 
 ---
-
-[] WL #2: Point to click AI feature: click on an object to segment it with AI
 [] WL #1: Dataset annotation QA agent 
 [] Dataset health monitoring (maybe - nice 2 have)
 [] (tailnet identity) batching: Assign dataset annotation tasks by tailnet user/device ()

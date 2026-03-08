@@ -390,31 +390,6 @@ export default function TopBar({
           </button>
         )}
 
-        {/* Save / check button */}
-        <button
-          onClick={handleSave}
-          title="Save annotations"
-          style={{
-            width: 48,
-            height: 48,
-            borderRadius: '50%',
-            background: saveFlash ? '#5a4bd6' : '#6C5CE7',
-            border: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            transition: 'all 0.2s',
-            boxShadow: '0 2px 6px rgba(108, 92, 231, 0.3)',
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = '#5a4bd6'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = saveFlash ? '#5a4bd6' : '#6C5CE7'; }}
-        >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
-        </button>
-
         {/* More options "..." button */}
         <div style={{ position: 'relative' }}>
           <button
