@@ -88,8 +88,8 @@ export default function TopBar({
     >
       {/* Back arrow */}
       <button
-        onClick={() => navigate('/')}
-        title="Back to Projects"
+        onClick={() => navigate(currentProject ? `/project/${currentProject.id}` : '/')}
+        title="Back to Project Hub"
         style={{
           width: 48,
           height: 48,
@@ -132,7 +132,7 @@ export default function TopBar({
               cursor: 'pointer',
               whiteSpace: 'nowrap',
             }}
-            onClick={() => navigate('/')}
+            onClick={() => navigate(currentProject ? `/project/${currentProject.id}` : '/')}
             onMouseEnter={(e) => { e.currentTarget.style.color = '#6C5CE7'; }}
             onMouseLeave={(e) => { e.currentTarget.style.color = '#888'; }}
           >

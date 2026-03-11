@@ -1,6 +1,7 @@
 import { Component, useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import ProjectList from './components/ProjectList';
+import ProjectHub from './components/ProjectHub';
 import ProjectView from './components/ProjectView';
 import { useStore } from './store';
 import * as api from './api';
@@ -81,7 +82,8 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<ProjectList />} />
-          <Route path="/project/:projectId" element={<ProjectView />} />
+          <Route path="/project/:projectId" element={<ProjectHub />} />
+          <Route path="/project/:projectId/annotate" element={<ProjectView />} />
         </Routes>
       </BrowserRouter>
     </ErrorBoundary>

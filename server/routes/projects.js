@@ -28,9 +28,9 @@ router.post('/', (req, res) => {
   const id = uuidv4();
   const now = new Date().toISOString();
   db.prepare(`
-    INSERT INTO projects (id, name, description, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?)
-  `).run(id, name, description || '', now, now);
+    INSERT INTO projects (id, name, description, created_by, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(id, name, description || '', req.user || 'local-user', now, now);
 
   const project = db.prepare('SELECT * FROM projects WHERE id = ?').get(id);
   res.status(201).json(project);
@@ -41,7 +41,9 @@ router.get('/:id', (req, res) => {
   const project = db.prepare(`
     SELECT p.*,
       (SELECT COUNT(*) FROM images WHERE project_id = p.id) AS image_count,
-      (SELECT COUNT(*) FROM annotations WHERE project_id = p.id) AS annotation_count
+      (SELECT COUNT(*) FROM annotations WHERE project_id = p.id) AS annotation_count,
+      (SELECT COUNT(*) FROM label_classes WHERE project_id = p.id) AS label_count,
+      (SELECT COUNT(*) FROM images WHERE project_id = p.id AND status = 'done') AS done_count
     FROM projects p WHERE p.id = ?
   `).get(req.params.id);
 
@@ -49,6 +51,51 @@ router.get('/:id', (req, res) => {
     return res.status(404).json({ error: 'Project not found' });
   }
   res.json(project);
+});
+
+// GET /api/projects/:id/activity — contributor stats + recent activity
+router.get('/:id/activity', (req, res) => {
+  const project = db.prepare('SELECT * FROM projects WHERE id = ?').get(req.params.id);
+  if (!project) return res.status(404).json({ error: 'Project not found' });
+
+  // Per-contributor annotation counts
+  const contributors = db.prepare(`
+    SELECT created_by,
+      COUNT(*) AS annotation_count,
+      MAX(created_at) AS last_active
+    FROM annotations WHERE project_id = ?
+    GROUP BY created_by
+    ORDER BY annotation_count DESC
+  `).all(req.params.id);
+
+  // Per-contributor image upload counts
+  const uploaders = db.prepare(`
+    SELECT uploaded_by,
+      COUNT(*) AS image_count
+    FROM images WHERE project_id = ?
+    GROUP BY uploaded_by
+  `).all(req.params.id);
+
+  // Recent annotations (last 20)
+  const recentActivity = db.prepare(`
+    SELECT a.id, a.label, a.source, a.created_by, a.created_at,
+      i.original_name AS image_name
+    FROM annotations a
+    JOIN images i ON a.image_id = i.id
+    WHERE a.project_id = ?
+    ORDER BY a.created_at DESC
+    LIMIT 20
+  `).all(req.params.id);
+
+  // Per-label class distribution
+  const labelDistribution = db.prepare(`
+    SELECT label, COUNT(*) AS count
+    FROM annotations WHERE project_id = ? AND label IS NOT NULL
+    GROUP BY label
+    ORDER BY count DESC
+  `).all(req.params.id);
+
+  res.json({ contributors, uploaders, recentActivity, labelDistribution });
 });
 
 // PUT /api/projects/:id — update project

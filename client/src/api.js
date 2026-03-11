@@ -53,6 +53,10 @@ export async function deleteProject(id) {
   return jsonDelete(`${API}/projects/${id}`);
 }
 
+export async function fetchProjectActivity(id) {
+  return request(`${API}/projects/${id}/activity`);
+}
+
 // ── Images ────────────────────────────────────────────────
 
 export async function fetchImages(projectId) {
