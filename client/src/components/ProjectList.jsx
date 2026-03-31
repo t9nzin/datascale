@@ -309,7 +309,7 @@ function ProjectCard({ project, onClick, onExport }) {
 
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginBottom: 4 }}>
-            {/* User avatar */}
+            {/* Creator avatar */}
             <div
               style={{
                 width: 28,
@@ -323,8 +323,9 @@ function ProjectCard({ project, onClick, onExport }) {
                 fontWeight: 700,
                 color: '#fff',
               }}
+              title={project.created_by || 'local-user'}
             >
-              LU
+              {getCreatorInitials(project.created_by)}
             </div>
           </div>
         </div>
@@ -505,6 +506,16 @@ function NewDatasetCard({ onClick }) {
       </div>
     </div>
   );
+}
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+
+function getCreatorInitials(login) {
+  if (!login || login === 'local-user') return 'LU';
+  const local = login.split('@')[0];
+  const parts = local.split(/[._-]+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return local.slice(0, 2).toUpperCase();
 }
 
 // ── User Profile ────────────────────────────────────────────────────────────

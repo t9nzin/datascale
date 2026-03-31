@@ -18,6 +18,7 @@ db.exec(`
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     description TEXT,
+    created_by TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
   );
@@ -90,6 +91,12 @@ try {
   // Column already exists
 }
 
+// Migration: add created_by column to projects table
+try {
+  db.exec(`ALTER TABLE projects ADD COLUMN created_by TEXT`);
+} catch {
+  // Column already exists
+}
 // Migration: add bbox and predicted_label columns to review_issues table
 try {
   db.exec(`ALTER TABLE review_issues ADD COLUMN bbox TEXT`);
